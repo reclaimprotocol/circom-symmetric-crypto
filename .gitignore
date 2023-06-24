@@ -1,0 +1,21 @@
+node_modules
+.eslintcache
+*/lib
+keypair.json
+.env
+*/*/dist
+coverage
+coverage.json
+typechain
+typechain-types
+
+#Hardhat files
+cache
+artifacts
+
+.idea
+
+.DS_Store
+.env.production
+
+template-client-sdk/dist/
