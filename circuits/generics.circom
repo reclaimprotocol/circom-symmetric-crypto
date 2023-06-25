@@ -27,10 +27,9 @@ template Add32Bits() {
 template RotateLeft32Bits(L) {
 	signal input in;
 	signal output out;
-	// TODO: check if this constraint is enough?
 	signal part1 <-- (in << L) & 0xFFFFFFFF;
 	signal part2 <-- in >> (32 - L);
-	out <-- part1 | part2;
+	out <== part1 + part2;
 	(part1 / 2**L) + (part2 * 2**(32-L)) === in;
 }
 

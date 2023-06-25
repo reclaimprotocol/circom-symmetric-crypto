@@ -4,3 +4,5 @@ resources/*.sym
 src/test.ts
 node_modules
 lib
+
+.idea

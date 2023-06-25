@@ -87,12 +87,22 @@ console.log('proof verified')
 
 Run the tests via `npm run test`
 
-### Building the Circuit
+## Building the Circuit
+
+### Prerequisites
+curl, jq
+
+Official Ptau file for bn128 with 256k max constraints can be downloaded by running
+```bash
+npm run download:ptau
+```
 
 Build the circuit via `npm run build:circuit`
 
 ### Regenerating the Verification Key
 
 1. Generate bls12-381 parameters via `npm run generate:ptau`
-  - note: we currently use BN-128 for our circuit, but plan to switch to BLs for greater security
-2. TODO
+2. Fix `build-circuit.sh` to use `-p bls12381` parameter
+   - note: we currently use BN-128 for our circuit, but plan to switch to BLs for greater security
+   - zkey and ptau file verification is disabled right now due to a bug in the latest snarkJS version 0.7.0
+3. TODO

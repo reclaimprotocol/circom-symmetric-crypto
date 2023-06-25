@@ -8,6 +8,7 @@
     "build:circuit": "sh scripts/build-circuit.sh",
     "build:tsc": "npm exec tsc",
     "generate:ptau": "sh scripts/generate-ptau.sh",
+    "download:ptau": "sh scripts/download-ptau.sh",
     "prepare": "npm run build:tsc"
   },
   "files": [
