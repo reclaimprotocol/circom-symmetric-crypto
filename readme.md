@@ -94,4 +94,5 @@ Build the circuit via `npm run build:circuit`
 ### Regenerating the Verification Key
 
 1. Generate bls12-381 parameters via `npm run generate:ptau`
+  - note: we currently use BN-128 for our circuit, but plan to switch to BLs for greater security
 2. TODO
