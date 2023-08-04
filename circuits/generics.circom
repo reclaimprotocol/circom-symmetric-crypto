@@ -32,6 +32,10 @@ template Add32Bits() {
 	(a + b) - out === tmp * (0xFFFFFFFF + 1);
 }
 
+/**
+ * Rotate left a 32-bit integer by L bits
+ * Note: "in" must already be a constrained 32-bit integer
+ */
 template RotateLeft32Bits(L) {
 	signal input in;
 	signal output out;
@@ -69,8 +73,8 @@ template XorWords(N, M) {
 			bbits[l] <-- bin >= j ? 1 : 0;
 			// ensure abits[l] and bbits[l] are either 0 or 1
 			// below should be uncommented in prod?
-			// abits[l] * (abits[l] - 1) === 0;
-			// bbits[l] * (bbits[l] - 1) === 0;
+			abits[l] * (abits[l] - 1) === 0;
+			bbits[l] * (bbits[l] - 1) === 0;
 			xors[l] <== abits[l] + bbits[l] - 2 * abits[l] * bbits[l];
 
 			ain -= abits[l] * j;
@@ -80,8 +84,8 @@ template XorWords(N, M) {
 			l ++;
 		}
 
-		ain * a[i] === 0;
-		bin * b[i] === 0;
+		ain === 0;
+		bin === 0;
 		out[i] <== out2;
 	}
 }
