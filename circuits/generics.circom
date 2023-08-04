@@ -35,14 +35,27 @@ template Add32Bits() {
 /**
  * Rotate left a 32-bit integer by L bits
  * Note: "in" must already be a constrained 32-bit integer
+ * 
  */
 template RotateLeft32Bits(L) {
 	signal input in;
 	signal output out;
-	signal part1 <-- (in << L) & 0xFFFFFFFF;
-	signal part2 <-- in >> (32 - L);
+	// get the most significant L bits
+	// and shift them to the least significant L bits
+	// eg. if L = 3, and instead of 32 bits it's 10 bits,
+	// in = 0101011001, then part1 = 010
+	signal part1 <-- in >> (32 - L);
+	// get the least significant 32 - L bits
+	// from the above example,
+	// in = 0101011001, part1 = 010,
+	// tmp = part1 * 2**(32 - L) = 0100000000
+	// part2Tmp = in - tmp = 0101011001 - 0100000000 = 0001011001
+	// part2 = part2Tmp * 2**L = 01011001000
+	signal part2 <== (in - (part1 * 2**(32 - L))) * 2**L;
+	// now, the rotated number is simply part1 + part2
 	out <== part1 + part2;
-	(part1 / 2**L) + (part2 * 2**(32-L)) === in;
+	// constraint to ensure that the rotation is correct
+	(part2 / 2**L) + (part1 * 2**(32-L)) === in;
 }
 
 /**
