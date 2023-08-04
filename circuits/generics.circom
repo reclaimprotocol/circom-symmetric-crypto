@@ -2,6 +2,7 @@ pragma circom 2.0.0;
 
 /**
  * Add two 32-bit integers
+ * Note: a and b must be 32-bit integers
  */
 template Add32Bits() {
 	signal input a;
@@ -22,6 +23,13 @@ template Add32Bits() {
 	// we'll get the correct result
 	// which is (a + b) & 2**32
 	out <== (a + b) - (tmp * (0xFFFFFFFF + 1));
+	// ensure that the tmp bit was correctly calculated
+	// if tmp is maliciously = 1 and (a + b) < 2**32 then
+	// (a+b) - out = 0, but tmp * (0xFFFFFFFF + 1) = 2**32
+	// hence condition below will fail
+	// if tmp is maliciously = 0 and (a + b) > 2**32 then
+	// (a+b) - out = 2**32, but tmp * (0xFFFFFFFF + 1) = 0
+	(a + b) - out === tmp * (0xFFFFFFFF + 1);
 }
 
 template RotateLeft32Bits(L) {
