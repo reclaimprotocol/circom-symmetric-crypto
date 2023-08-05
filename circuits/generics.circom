@@ -2,9 +2,9 @@ pragma circom 2.0.0;
 
 /**
  * Add two 32-bit integers
- * Note: a and b must be 32-bit integers
+ * Note: a and b must already be 32-bit constrained integers
  */
-template Add32Bits() {
+template Add32BitsUnsafe() {
 	signal input a;
 	signal input b;
 	signal output out;
@@ -37,7 +37,7 @@ template Add32Bits() {
  * Note: "in" must already be a constrained 32-bit integer
  * 
  */
-template RotateLeft32Bits(L) {
+template RotateLeft32BitsUnsafe(L) {
 	signal input in;
 	signal output out;
 	// get the most significant L bits
