@@ -19,6 +19,24 @@ template ChaCha20(N) {
 	var i = 0;
 	var j = 0;
 
+	// constrain key, nonce & counter to 32 bits
+	component constrainKey[8];
+	component constrainNonce[3];
+	component constrainCounter;
+	for(i = 0;i < 8;i++) {
+		constrainKey[i] = Constrain32Bits();
+		constrainKey[i].in <== key[i];
+	}
+
+	for(i = 0;i < 3;i++) {
+		constrainNonce[i] = Constrain32Bits();
+		constrainNonce[i].in <== nonce[i];
+	}
+
+	constrainCounter = Constrain32Bits();
+	constrainCounter.in <== counter;
+
+	// do the ChaCha20 rounds
 	component block[N/16];
 	component xors[N];
 	for(i = 0; i < N/16; i++) {

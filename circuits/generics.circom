@@ -1,5 +1,13 @@
 pragma circom 2.0.0;
 
+template Constrain32Bits() {
+	signal input in;
+	
+	signal tmp;
+	tmp <-- in & 0xFFFFFFFF;
+	tmp === in;
+}
+
 /**
  * Add two 32-bit integers
  * Note: a and b must already be 32-bit constrained integers
