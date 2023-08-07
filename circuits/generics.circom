@@ -1,11 +1,23 @@
 pragma circom 2.0.0;
 
+include "../node_modules/circomlib/circuits/bitify.circom";
+
 template Constrain32Bits() {
 	signal input in;
-	
-	signal tmp;
-	tmp <-- in & 0xFFFFFFFF;
-	tmp === in;
+
+	// convert to bits
+	component tmp;
+	tmp = Num2Bits(32);
+	tmp.in <== in;
+
+	// convert back to number
+	component tmp2;
+	tmp2 = Bits2Num(32);
+	for(var i = 0;i < 32;i++) {
+		tmp2.in[i] <== tmp.out[i];
+	}
+
+	tmp2.out === in;
 }
 
 /**

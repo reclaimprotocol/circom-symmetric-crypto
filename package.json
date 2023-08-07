@@ -26,12 +26,15 @@
   "devDependencies": {
     "@types/jest": "^29.4.2",
     "@types/node": "^18.14.3",
-    "snarkjs": "^0.7.0",
+    "circomlib": "^2.0.5",
+    "circom_tester": "^0.0.19",
     "jest": "^29.5.0",
     "pino": "^8.14.1",
+    "snarkjs": "^0.7.0",
     "ts-jest": "^29.0.5",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.0",
-    "circom_tester": "^0.0.19"
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
   }
 }
