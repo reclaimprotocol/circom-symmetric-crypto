@@ -9,15 +9,6 @@ template Constrain32Bits() {
 	component tmp;
 	tmp = Num2Bits(32);
 	tmp.in <== in;
-
-	// convert back to number
-	component tmp2;
-	tmp2 = Bits2Num(32);
-	for(var i = 0;i < 32;i++) {
-		tmp2.in[i] <== tmp.out[i];
-	}
-
-	tmp2.out === in;
 }
 
 /**
