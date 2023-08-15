@@ -104,6 +104,29 @@ describe('Circuits Tests', () => {
 		}
 	})
 
+	it('should constrain 32bit number', async() => {
+		const circuit = await loadCircuit('constrain32bits')
+
+		const inputs = [
+			0xfffffffff,
+			0xffffffff,
+			0x0,
+			0x12312
+		]
+
+		for(const input of inputs) {
+			const isGreater = input > 0xffffffff
+			try {
+				const w = await circuit.calculateWitness({ in: input })
+				await circuit.checkConstraints(w)
+				await circuit.assertOut(w, { })
+				expect(isGreater).toBeFalsy()
+			} catch(e) {
+				expect(isGreater).toBeTruthy()
+			}
+		}
+	})
+
 	// chacha test vectors from: https://datatracker.ietf.org/doc/html/draft-nir-cfrg-chacha20-poly1305#section-2.1.1
 	it('should perform a chacha20 quarter round', async() => {
 		const circuit = await loadCircuit('chacha20qr')

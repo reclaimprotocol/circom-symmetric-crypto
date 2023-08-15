@@ -10,19 +10,19 @@ template _RotateLeft32Bits() {
 	signal input in;
 	signal output out[4];
 
-	component rotl1 = RotateLeft32Bits(16);
+	component rotl1 = RotateLeft32BitsUnsafe(16);
 	rotl1.in <== in;
 	out[0] <== rotl1.out;
 
-	component rotl2 = RotateLeft32Bits(12);
+	component rotl2 = RotateLeft32BitsUnsafe(12);
 	rotl2.in <== in;
 	out[1] <== rotl2.out;
 
-	component rotl3 = RotateLeft32Bits(8);
+	component rotl3 = RotateLeft32BitsUnsafe(8);
 	rotl3.in <== in;
 	out[2] <== rotl3.out;
 
-	component rotl4 = RotateLeft32Bits(7);
+	component rotl4 = RotateLeft32BitsUnsafe(7);
 	rotl4.in <== in;
 	out[3] <== rotl4.out;
 }

@@ -19,6 +19,24 @@ template ChaCha20(N) {
 	var i = 0;
 	var j = 0;
 
+	// constrain key, nonce & counter to 32 bits
+	component constrainKey[8];
+	component constrainNonce[3];
+	component constrainCounter;
+	for(i = 0;i < 8;i++) {
+		constrainKey[i] = Constrain32Bits();
+		constrainKey[i].in <== key[i];
+	}
+
+	for(i = 0;i < 3;i++) {
+		constrainNonce[i] = Constrain32Bits();
+		constrainNonce[i].in <== nonce[i];
+	}
+
+	constrainCounter = Constrain32Bits();
+	constrainCounter.in <== counter;
+
+	// do the ChaCha20 rounds
 	component block[N/16];
 	component xors[N];
 	for(i = 0; i < N/16; i++) {
@@ -133,7 +151,7 @@ template ChaCha20Block() {
 
 	// add the result to the input
 	for(i = 0; i < 16; i++) {
-		finalAdd[i] = Add32Bits();
+		finalAdd[i] = Add32BitsUnsafe();
 		finalAdd[i].a <== tmp[i];
 		finalAdd[i].b <== in[i];
 		tmp[i] = finalAdd[i].out;
@@ -150,7 +168,7 @@ template QR() {
 	var tmp[4] = in;
 
 	// a += b
-	component add1 = Add32Bits();
+	component add1 = Add32BitsUnsafe();
 	add1.a <== tmp[0];
 	add1.b <== tmp[1];
 	tmp[0] = add1.out;
@@ -161,13 +179,13 @@ template QR() {
 	xor1.b[0] <== tmp[0];
 	tmp[3] = xor1.out[0];
 
-	// d = RotateLeft32Bits(d, 16)
-	component rot1 = RotateLeft32Bits(16);
+	// d = RotateLeft32BitsUnsafe(d, 16)
+	component rot1 = RotateLeft32BitsUnsafe(16);
 	rot1.in <== tmp[3];
 	tmp[3] = rot1.out;
 
 	// c += d
-	component add2 = Add32Bits();
+	component add2 = Add32BitsUnsafe();
 	add2.a <== tmp[2];
 	add2.b <== tmp[3];
 	tmp[2] = add2.out;
@@ -178,13 +196,13 @@ template QR() {
 	xor2.b[0] <== tmp[2];
 	tmp[1] = xor2.out[0];
 
-	// b = RotateLeft32Bits(b, 12)
-	component rot2 = RotateLeft32Bits(12);
+	// b = RotateLeft32BitsUnsafe(b, 12)
+	component rot2 = RotateLeft32BitsUnsafe(12);
 	rot2.in <== tmp[1];
 	tmp[1] = rot2.out;
 	
 	// a += b
-	component add3 = Add32Bits();
+	component add3 = Add32BitsUnsafe();
 	add3.a <== tmp[0];
 	add3.b <== tmp[1];
 	tmp[0] = add3.out;
@@ -195,13 +213,13 @@ template QR() {
 	xor3.b[0] <== tmp[0];
 	tmp[3] = xor3.out[0];
 
-	// d = RotateLeft32Bits(d, 8)
-	component rot3 = RotateLeft32Bits(8);
+	// d = RotateLeft32BitsUnsafe(d, 8)
+	component rot3 = RotateLeft32BitsUnsafe(8);
 	rot3.in <== tmp[3];
 	tmp[3] = rot3.out;
 
 	// c += d
-	component add4 = Add32Bits();
+	component add4 = Add32BitsUnsafe();
 	add4.a <== tmp[2];
 	add4.b <== tmp[3];
 	tmp[2] = add4.out;
@@ -212,8 +230,8 @@ template QR() {
 	xor4.b[0] <== tmp[2];
 	tmp[1] = xor4.out[0];
 
-	// b = RotateLeft32Bits(b, 7)
-	component rot4 = RotateLeft32Bits(7);
+	// b = RotateLeft32BitsUnsafe(b, 7)
+	component rot4 = RotateLeft32BitsUnsafe(7);
 	rot4.in <== tmp[1];
 	tmp[1] = rot4.out;
 
