@@ -1,5 +1,5 @@
 import { PrivateInput, Proof, PublicInput, UintArray, ZKOperator } from "./types"
-import { makeUintArray, toUintArray } from "./utils"
+import {makeUintArray, padU8ToU32Array, toUintArray} from "./utils"
 
 // we use this to pad the ciphertext
 export const REDACTION_CHAR_CODE = '*'.charCodeAt(0)
@@ -125,7 +125,7 @@ function padArray(buf: UintArray, size: number): UintArray {
 
 function normaliseCiphertextForZk(ciphertext: Uint8Array): UintArray {
 	const ciphertextArray = padArray(
-		toUintArray(ciphertext),
+		toUintArray(padU8ToU32Array(ciphertext)),
 		ZK_CIRCUIT_CHUNK_SIZE
 	)
 
