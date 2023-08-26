@@ -1,4 +1,5 @@
 import { UintArray } from "./types"
+import {REDACTION_CHAR_CODE} from "./zk";
 
 export function toUintArray(buf: Uint8Array | Buffer) {
 	buf = Buffer.isBuffer(buf) ? buf : Buffer.from(buf)
@@ -24,4 +25,25 @@ export function toUint8Array(buf: UintArray) {
 		arr.writeUInt32LE(buf[i], i * 4)
 	}
 	return arr
+}
+
+
+export function padU8ToU32Array(buf: Uint8Array): Uint8Array {
+
+	if(buf.length % 4 === 0) {
+		return buf
+	}
+
+	return makeUint8Array(
+		[
+			...Array.from(buf),
+			...new Array(4 - buf.length % 4).fill(REDACTION_CHAR_CODE)
+		]
+	)
+}
+
+export function makeUint8Array(init: number | number[]) {
+	return typeof init === 'number'
+		? new Uint8Array(init)
+		: Uint8Array.from(init)
 }
