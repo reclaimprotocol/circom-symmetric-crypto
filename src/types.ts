@@ -68,3 +68,5 @@ export type PublicInput = {
 	/** the ciphertext to decrypt */
 	ciphertext: Uint8Array
 }
+
+export type Logger = Pick<typeof console, 'info' | 'trace' | 'debug' | 'error' | 'warn'>

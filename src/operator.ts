@@ -1,5 +1,4 @@
-import type { Logger } from "pino";
-import { ZKOperator, ZKParams } from "./types";
+import { Logger, ZKOperator, ZKParams } from "./types";
 
 /**
  * Use for browser based environments, where we can't
