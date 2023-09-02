@@ -1,11 +1,13 @@
 import { UintArray } from "./types"
-import {REDACTION_CHAR_CODE} from "./zk";
 
-export function toUintArray(buf: Uint8Array | Buffer) {
-	buf = Buffer.isBuffer(buf) ? buf : Buffer.from(buf)
+// we use this to pad the ciphertext
+export const REDACTION_CHAR_CODE = '*'.charCodeAt(0)
+
+export function toUintArray(buf: Uint8Array) {
 	const arr = makeUintArray(buf.length / 4)
+	const arrView = new DataView(arr.buffer, arr.byteOffset, arr.byteLength)
 	for(let i = 0;i < arr.length;i++) {
-		arr[i] = (buf as Buffer).readUInt32LE(i * 4)
+		arr[i] = arrView.getUint32(i * 4)
 	}
 	return arr
 }
@@ -20,9 +22,10 @@ export function makeUintArray(init: number | number[]) {
  * Convert a UintArray (uint32array) to a Uint8Array
  */
 export function toUint8Array(buf: UintArray) {
-	const arr = Buffer.alloc(buf.length * 4)
+	const arr = new Uint8Array(buf.length * 4)
+	const arrView = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
 	for(let i = 0;i < buf.length;i++) {
-		arr.writeUInt32LE(buf[i], i * 4)
+		arrView.setUint32(i * 4, buf[i])
 	}
 	return arr
 }
@@ -46,4 +49,13 @@ export function makeUint8Array(init: number | number[]) {
 	return typeof init === 'number'
 		? new Uint8Array(init)
 		: Uint8Array.from(init)
+}
+
+export function padArray(buf: UintArray, size: number): UintArray {
+	return makeUintArray(
+		[
+			...Array.from(buf),
+			...new Array(size - buf.length).fill(REDACTION_CHAR_CODE)
+		]
+	)
 }

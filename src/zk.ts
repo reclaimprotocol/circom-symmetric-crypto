@@ -1,8 +1,6 @@
 import { PrivateInput, Proof, PublicInput, UintArray, ZKOperator } from "./types"
-import {makeUintArray, padU8ToU32Array, toUintArray} from "./utils"
+import { makeUintArray, padArray, padU8ToU32Array, toUintArray } from "./utils"
 
-// we use this to pad the ciphertext
-export const REDACTION_CHAR_CODE = '*'.charCodeAt(0)
 // chunk size of data that is input to the ZK circuit
 // in 32-bit words
 export const ZK_CIRCUIT_CHUNK_SIZE = 16
@@ -42,8 +40,8 @@ export async function generateProof(
 	const ciphertextArray = normaliseCiphertextForZk(
 		ciphertext,
 	)
-	const keyU32 = toUintArray(Buffer.from(key))
-	const nonce = toUintArray(Buffer.from(iv))
+	const keyU32 = toUintArray(key)
+	const nonce = toUintArray(iv)
 
 	const { proof, publicSignals } = await operator.groth16FullProve(
 		{
@@ -112,15 +110,6 @@ function getSerialisedPublicInputs(
 		...Array.from(decryptedRedactedCiphertext),
 		...Array.from(ciphertext),
 	]
-}
-
-function padArray(buf: UintArray, size: number): UintArray {
-	return makeUintArray(
-		[
-			...Array.from(buf),
-			...new Array(size - buf.length).fill(REDACTION_CHAR_CODE)
-		]
-	)
 }
 
 function normaliseCiphertextForZk(ciphertext: Uint8Array): UintArray {

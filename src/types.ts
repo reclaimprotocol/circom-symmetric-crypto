@@ -52,11 +52,6 @@ export type ZKParams = {
 	circuitWasm: ZKInput
 }
 
-export type Redaction = {
-	startIndex: number
-	endIndex: number
-}
-
 export type PrivateInput = {
 	/** 256 bit ChaCha20 key to decrypt ciphertext */
 	key: Uint8Array
