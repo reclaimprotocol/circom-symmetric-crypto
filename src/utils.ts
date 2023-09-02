@@ -5,9 +5,9 @@ export const REDACTION_CHAR_CODE = '*'.charCodeAt(0)
 
 export function toUintArray(buf: Uint8Array) {
 	const arr = makeUintArray(buf.length / 4)
-	const arrView = new DataView(arr.buffer, arr.byteOffset, arr.byteLength)
+	const arrView = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
 	for(let i = 0;i < arr.length;i++) {
-		arr[i] = arrView.getUint32(i * 4)
+		arr[i] = arrView.getUint32(i * 4, true)
 	}
 	return arr
 }
@@ -23,9 +23,9 @@ export function makeUintArray(init: number | number[]) {
  */
 export function toUint8Array(buf: UintArray) {
 	const arr = new Uint8Array(buf.length * 4)
-	const arrView = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+	const arrView = new DataView(arr.buffer, arr.byteOffset, arr.byteLength)
 	for(let i = 0;i < buf.length;i++) {
-		arrView.setUint32(i * 4, buf[i])
+		arrView.setUint32(i * 4, buf[i], true)
 	}
 	return arr
 }
