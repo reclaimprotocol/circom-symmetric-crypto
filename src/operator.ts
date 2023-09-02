@@ -1,13 +1,34 @@
 import type { Logger } from "pino";
-import { join } from 'path'
 import { ZKOperator, ZKParams } from "./types";
+
+/**
+ * Use for browser based environments, where we can't
+ * load the WASM and zkey from the filesystem
+ */
+export async function makeRemoteSnarkJsZkOperator(logger?: Logger) {
+	const [wasm, zkey] = await Promise.all([
+		// the circuit WASM
+		fetch('https://reclaim-assets.s3.ap-south-1.amazonaws.com/circuit.wasm')
+			.then((r) => r.arrayBuffer()),
+		fetch('https://reclaim-assets.s3.ap-south-1.amazonaws.com/circuit_final.zkey')
+			.then((r) => r.arrayBuffer()),
+	])
+	return _makeSnarkJsZKOperator(
+		{
+			zkey: { data: new Uint8Array(zkey) },
+			circuitWasm: new Uint8Array(wasm)
+		},
+		logger
+	)
+}
 
 /**
  * Make a ZK operator from the snarkjs dependency
  * @param logger 
  * @returns 
  */
-export function makeSnarkJsZKOperator(logger?: Logger) {
+export async function makeLocalSnarkJsZkOperator(logger?: Logger) {
+	const { join } = await import('path')
 	return _makeSnarkJsZKOperator(
 		{
 			zkey: {

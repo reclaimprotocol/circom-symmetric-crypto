@@ -21,7 +21,7 @@ npm install snarkjs
 ### Generating Proof
 
 ```ts
-import { generateProof, verifyProof, makeSnarkJsZKOperator, toUint8Array } from '@reclaimprotocol/circom-chacha20'
+import { generateProof, verifyProof, makeLocalSnarkJsZkOperator, toUint8Array } from '@reclaimprotocol/circom-chacha20'
 
 const key = randomBytes(16)
 const iv = randomBytes(12)
@@ -30,7 +30,7 @@ const ciphertext = chacha20(key, iv, data)
 
 // the operator is the abstract interface for
 // the snarkjs library to generate & verify the proof
-const zkOperator = makeSnarkJsZKOperator()
+const zkOperator = makeLocalSnarkJsZkOperator()
 // generate the proof that you have the key to the ciphertext
 const {
 	// groth16-snarkjs proof as a JSON string
