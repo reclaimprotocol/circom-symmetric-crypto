@@ -1,15 +1,23 @@
 import { Logger, ZKOperator, ZKParams } from "./types";
 
+type RemoteSnarkJsOperatorOpts = {
+	zkeyUrl: string
+	circuitWasmUrl: string
+}
+
 /**
  * Use for browser based environments, where we can't
  * load the WASM and zkey from the filesystem
  */
-export async function makeRemoteSnarkJsZkOperator(logger?: Logger) {
+export async function makeRemoteSnarkJsZkOperator(
+	{ zkeyUrl, circuitWasmUrl }: RemoteSnarkJsOperatorOpts,
+	logger?: Logger
+) {
 	const [wasm, zkey] = await Promise.all([
 		// the circuit WASM
-		fetch('https://reclaim-assets.s3.ap-south-1.amazonaws.com/circuit.wasm')
+		fetch(circuitWasmUrl)
 			.then((r) => r.arrayBuffer()),
-		fetch('https://reclaim-assets.s3.ap-south-1.amazonaws.com/circuit_final.zkey')
+		fetch(zkeyUrl)
 			.then((r) => r.arrayBuffer()),
 	])
 
