@@ -12,6 +12,17 @@ export async function makeRemoteSnarkJsZkOperator(logger?: Logger) {
 		fetch('https://reclaim-assets.s3.ap-south-1.amazonaws.com/circuit_final.zkey')
 			.then((r) => r.arrayBuffer()),
 	])
+
+	// snarkjs needs to know that we're
+	// in a browser environment
+	if(
+		typeof window !== 'undefined'
+		&& window.process === undefined
+	) {
+		// @ts-ignore
+		window.process = { browser: true }
+	}
+
 	return _makeSnarkJsZKOperator(
 		{
 			zkey: { data: new Uint8Array(zkey) },
