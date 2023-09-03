@@ -15,7 +15,7 @@ export async function makeRemoteSnarkJsZkOperator(logger?: Logger) {
 		fetch('https://raw.githubusercontent.com/iden3/snarkjs/v0.7.0/build/snarkjs.min.js')
 			.then((r) => r.text())
 	])
-	const snarkjsCode = await eval(snarkjs)
+	await eval(snarkjs + '; window.snarkjs = snarkjs;')
 
 	logger?.debug('loaded snarkjs & params remotely')
 
@@ -24,7 +24,7 @@ export async function makeRemoteSnarkJsZkOperator(logger?: Logger) {
 			zkey: { data: new Uint8Array(zkey) },
 			circuitWasm: new Uint8Array(wasm)
 		},
-		snarkjsCode,
+		window['snarkjs'],
 		logger
 	)
 }
