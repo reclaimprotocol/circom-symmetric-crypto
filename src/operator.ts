@@ -2,21 +2,29 @@ import { Logger, ZKOperator, ZKParams } from "./types";
 
 /**
  * Use for browser based environments, where we can't
- * load the WASM and zkey from the filesystem
+ * load the WASM and zkey from the filesystem;
+ * Also utilises a CDN for the snarkjs dependency
  */
 export async function makeRemoteSnarkJsZkOperator(logger?: Logger) {
-	const [wasm, zkey] = await Promise.all([
+	const [wasm, zkey, snarkjs] = await Promise.all([
 		// the circuit WASM
 		fetch('https://reclaim-assets.s3.ap-south-1.amazonaws.com/circuit.wasm')
 			.then((r) => r.arrayBuffer()),
 		fetch('https://reclaim-assets.s3.ap-south-1.amazonaws.com/circuit_final.zkey')
 			.then((r) => r.arrayBuffer()),
+		fetch('https://raw.githubusercontent.com/iden3/snarkjs/v0.7.0/build/snarkjs.min.js')
+			.then((r) => r.text())
 	])
+	const snarkjsCode = await eval(snarkjs)
+
+	logger?.debug('loaded snarkjs & params remotely')
+
 	return _makeSnarkJsZKOperator(
 		{
 			zkey: { data: new Uint8Array(zkey) },
 			circuitWasm: new Uint8Array(wasm)
 		},
+		snarkjsCode,
 		logger
 	)
 }
@@ -41,18 +49,18 @@ export async function makeLocalSnarkJsZkOperator(logger?: Logger) {
 				'../resources/circuit.wasm'
 			),
 		},
+		// require here to avoid loading snarkjs in
+		// any unsupported environments
+		require('snarkjs/build/snarkjs.min.js'),
 		logger
 	)
 }
 
 function _makeSnarkJsZKOperator(
 	{ circuitWasm, zkey }: ZKParams,
+	snarkjs: any,
 	logger?: Logger
 ): ZKOperator {
-	// require here to avoid loading snarkjs in
-	// any unsupported environments
-	const snarkjs = require('snarkjs')
-
 	return {
 		groth16FullProve(input) {
 			return snarkjs.groth16.fullProve(input, circuitWasm, zkey.data, logger)

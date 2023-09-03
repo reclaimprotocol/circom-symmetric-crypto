@@ -5,7 +5,8 @@ import {
 	makeLocalSnarkJsZkOperator,
 	verifyProof,
 	toUint8Array,
-	ZKOperator
+	ZKOperator,
+	makeRemoteSnarkJsZkOperator
 } from '../index'
 import { encryptData } from "./utils";
 
@@ -17,7 +18,7 @@ describe('Library Tests', () => {
 
 	let operator: ZKOperator
 	beforeAll(async() => {
-		operator = await makeLocalSnarkJsZkOperator()
+		operator = await makeRemoteSnarkJsZkOperator()
 	})
 
 	it('should verify encrypted data', async() => {
