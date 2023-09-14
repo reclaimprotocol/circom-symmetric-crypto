@@ -1,5 +1,5 @@
 pragma circom 2.0.0;
 
-include "../generics.circom";
+include "../generics-bits.circom";
 
-component main = Add32BitsUnsafe();
+component main = AddBits(32);

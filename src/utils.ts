@@ -1,5 +1,7 @@
 import { UintArray } from "./types"
 
+export const BITS_PER_WORD = 32
+
 // we use this to pad the ciphertext
 export const REDACTION_CHAR_CODE = '*'.charCodeAt(0)
 
@@ -58,4 +60,51 @@ export function padArray(buf: UintArray, size: number): UintArray {
 			...new Array(size - buf.length).fill(REDACTION_CHAR_CODE)
 		]
 	)
+}
+
+/**
+ * Converts a Uint32Array to an array of bits.
+ * LE order.
+ */
+export function uintArrayToBits(uintArray: UintArray | number[]) {
+	const bits: number[][] = []
+	for (let i = 0; i < uintArray.length; i++) {
+		const uint = uintArray[i]
+		bits.push(numToBitsNumerical(uint))
+	}
+
+	return bits
+}
+
+export function bitsToUintArray(bits: number[]) {
+	const uintArray = new Uint32Array(bits.length / BITS_PER_WORD)
+	for(let i = 0;i < bits.length;i += BITS_PER_WORD) {
+		const uint = bitsToNum(bits.slice(i, i + BITS_PER_WORD))
+		uintArray[i / BITS_PER_WORD] = uint
+	}
+
+	return uintArray
+}
+
+function numToBitsNumerical(num: number, bitCount = BITS_PER_WORD) {
+	const bits: number[] = []
+	for(let i = 2 ** (bitCount - 1);i >= 1;i /= 2) {
+		const bit = num >= i ? 1 : 0
+		bits.push(bit)
+		num -= bit * i
+	}
+
+	return bits
+}
+
+function bitsToNum(bits: number[]) {
+	let num = 0
+
+	let exp = 2 ** (bits.length - 1)
+	for(let i = 0;i < bits.length;i++) {
+		num += bits[i] * exp
+		exp /= 2
+	}
+
+	return num
 }

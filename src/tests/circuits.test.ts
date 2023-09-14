@@ -1,6 +1,6 @@
 import { wasm as WasmTester } from 'circom_tester'
 import { join } from 'path'
-import { toUintArray } from '../utils'
+import { toUintArray, uintArrayToBits } from '../utils'
 
 describe('Circuits Tests', () => {
 
@@ -32,9 +32,15 @@ describe('Circuits Tests', () => {
 
 		for(const input of pairs) {
 			const output = ((input.a + input.b) & 0xffffffff) >>> 0
-			const w = await circuit.calculateWitness(input)
+			const outputBits = uintArrayToBits([output])[0]
+			const w = await circuit.calculateWitness(
+				{
+					a: uintArrayToBits([input.a]),
+					b: uintArrayToBits([input.b])
+				}
+			)
 			await circuit.checkConstraints(w)
-			await circuit.assertOut(w, {out: output})
+			await circuit.assertOut(w, { out: outputBits })
 		}
 	})
 
@@ -43,36 +49,40 @@ describe('Circuits Tests', () => {
 
 		const pairs = [
 			{ 
-				a: [1],
-				b: [5],
+				a: 1,
+				b: 5,
 				out: 4
 			},
 			{
-				a: [0x61707865],
-				b: [0x3120646e],
+				a: 0x61707865,
+				b: 0x3120646e,
 				out: 0x50501c0b
 			},
 			{
-				a: [0x01234567],
-				b: [0x12131415],
+				a: 0x01234567,
+				b: 0x12131415,
 				out: 0x13305172
 			},
 			{
-				a: [2076431101],
-				b: [0x3d631689],
+				a: 2076431101,
+				b: 0x3d631689,
 				out: 1184941172
 			},
 			{
-				a: [0xffffff0f],
-				b: [0x0fffffff],
+				a: 0xffffff0f,
+				b: 0x0fffffff,
 				out: 0xf00000f0
 			}
 		]
 
 		for(const { a, b, out } of pairs) {
-			const w = await circuit.calculateWitness({ a, b })
+			const outBits = uintArrayToBits([out])[0]
+			const w = await circuit.calculateWitness({
+				a: uintArrayToBits([a])[0],
+				b: uintArrayToBits([b])[0]
+			})
 			await circuit.checkConstraints(w)
-			await circuit.assertOut(w, {out: [out]})
+			await circuit.assertOut(w, {out: outBits})
 		}
 	})
 
@@ -98,32 +108,14 @@ describe('Circuits Tests', () => {
 				rotateLeft32bits(input, 8),
 				rotateLeft32bits(input, 7),
 			]
-			const w = await circuit.calculateWitness({ in: input })
+			const w = await circuit.calculateWitness({
+				in: uintArrayToBits([input])[0]
+			})
+
 			await circuit.checkConstraints(w)
-			await circuit.assertOut(w, { out: outputs })
-		}
-	})
-
-	it('should constrain 32bit number', async() => {
-		const circuit = await loadCircuit('constrain32bits')
-
-		const inputs = [
-			0xfffffffff,
-			0xffffffff,
-			0x0,
-			0x12312
-		]
-
-		for(const input of inputs) {
-			const isGreater = input > 0xffffffff
-			try {
-				const w = await circuit.calculateWitness({ in: input })
-				await circuit.checkConstraints(w)
-				await circuit.assertOut(w, { })
-				expect(isGreater).toBeFalsy()
-			} catch(e) {
-				expect(isGreater).toBeTruthy()
-			}
+			await circuit.assertOut(w, {
+				out: uintArrayToBits(outputs)
+			})
 		}
 	})
 
@@ -155,14 +147,19 @@ describe('Circuits Tests', () => {
 		]
 
 		for(const { input, output } of pairs) {
-			const w = await circuit.calculateWitness({ in: input })
+			const w = await circuit.calculateWitness({
+				in: uintArrayToBits(input)
+			})
+					
 			await circuit.checkConstraints(w)
-			await circuit.assertOut(w, { out: output })
+			await circuit.assertOut(w, {
+				out: uintArrayToBits(output)
+			})
 		}
 	})
 
-	it('should transform a chacha20 block', async() => {
-		const circuit = await loadCircuit('chacha20block')
+	it('should execute a chacha round', async() => {
+		const circuit = await loadCircuit('chacha20round')
 
 		const pairs = [
 			{
@@ -182,10 +179,14 @@ describe('Circuits Tests', () => {
 		]
 
 		for(const { input, output } of pairs) {
-			const w = await circuit.calculateWitness({ in: input })
+			const w = await circuit.calculateWitness({
+				in: uintArrayToBits(input)
+			})
 			await circuit.checkConstraints(w)
 
-			await circuit.assertOut(w, { out: output })
+			await circuit.assertOut(w, {
+				out: uintArrayToBits(output)
+			})
 		}
 	})
 
@@ -233,30 +234,32 @@ describe('Circuits Tests', () => {
 			}
 		]
 
-		for(const { keyBytes, nonceBytes, counter, plaintextBytes, ciphertextBytes } of vectors) {
-			const plaintext = Array.from(toUintArray(plaintextBytes))
-			const ciphertext = Array.from(toUintArray(ciphertextBytes))
-			
+		for(const { keyBytes, nonceBytes, counter, plaintextBytes, ciphertextBytes } of vectors) {			
+			const ciphertextBits = uintArrayToBits(toUintArray(ciphertextBytes))
+			const plaintextBits = uintArrayToBits(toUintArray(plaintextBytes))
+			const counterBits = uintArrayToBits([counter])[0]
 			const w = await circuit.calculateWitness({
-				key: Array.from(toUintArray(keyBytes)),
-				nonce: Array.from(toUintArray(nonceBytes)),
-				counter: counter,
-				in: plaintext,
+				key: uintArrayToBits(toUintArray(keyBytes)),
+				nonce: uintArrayToBits(toUintArray(nonceBytes)),
+				counter: counterBits,
+				in: plaintextBits,
 			})
 			
 			await circuit.checkConstraints(w)
-			await circuit.assertOut(w, { out: ciphertext })
+			await circuit.assertOut(w, {
+				out: ciphertextBits
+			})
 
 			// check decryption
 			const w2 = await circuit.calculateWitness({
-				key: Array.from(toUintArray(keyBytes)),
-				nonce: Array.from(toUintArray(nonceBytes)),
-				counter: counter,
-				in: ciphertext,
+				key: uintArrayToBits(toUintArray(keyBytes)),
+				nonce: uintArrayToBits(toUintArray(nonceBytes)),
+				counter: counterBits,
+				in: ciphertextBits,
 			})
 			
 			await circuit.checkConstraints(w2)
-			await circuit.assertOut(w2, { out: plaintext })
+			await circuit.assertOut(w2, { out: plaintextBits })
 		}
 	})
 
@@ -274,15 +277,6 @@ describe('Circuits Tests', () => {
 		x[b] = x[b] >>> 0
 		x[c] = x[c] >>> 0
 		x[d] = x[d] >>> 0
-
-		return x
-    }
-
-	function chacha20_round2(x, a, b, c, d) {
-        x[a] = (x[a] + x[b]) % 0xffffffff; x[d] = rotateLeft32bits(xorNums(x[d], x[a]), 16);
-        x[c] = (x[c] + x[d]) % 0xffffffff; x[b] = rotateLeft32bits(xorNums(x[b], x[c]), 12);
-        x[a] = (x[a] + x[b]) % 0xffffffff; x[d] = rotateLeft32bits(xorNums(x[d], x[a]), 8);
-        x[c] = (x[c] + x[d]) % 0xffffffff; x[b] = rotateLeft32bits(xorNums(x[b], x[c]), 7);
 
 		return x
     }
