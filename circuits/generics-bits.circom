@@ -40,6 +40,8 @@ template AddBits(BITS) {
     carrybit * (carrybit - 1) === 0;
     lout += carrybit * e2;
 
+    // added to remove "unconstrained signal"
+    // warning
     carrybit*0 === 0;
 
     // Ensure the sum matches
