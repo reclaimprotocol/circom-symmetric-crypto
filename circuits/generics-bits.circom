@@ -1,13 +1,13 @@
 pragma circom 2.0.0;
 
 /**
- * Add N bits together
+ * Add N bit numbers together
  */
 template AddBits(BITS) {
     signal input a[BITS];
     signal input b[BITS];
     signal output out[BITS];
-    signal output carrybit;
+    signal carrybit;
 
     var lin = 0;
     var lout = 0;
@@ -39,10 +39,6 @@ template AddBits(BITS) {
     // Ensure out is binary
     carrybit * (carrybit - 1) === 0;
     lout += carrybit * e2;
-
-    // added to remove "unconstrained signal"
-    // warning
-    carrybit*0 === 0;
 
     // Ensure the sum matches
     lin === lout;
