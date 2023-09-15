@@ -1,25 +1,49 @@
 pragma circom 2.0.0;
 
-include "../node_modules/circomlib/circuits/bitify.circom";
-include "../node_modules/circomlib/circuits/binsum.circom";
-
 /**
  * Add N bits together
  */
 template AddBits(BITS) {
-	signal input a[BITS];
-	signal input b[BITS];
-	signal output out[BITS];
-	
-	component adder = BinSum(BITS, 2);
-    for(var i = 0;i < BITS;i++) {
-        adder.in[0][i] <== a[BITS - i - 1];
-        adder.in[1][i] <== b[BITS - i - 1];
+    signal input a[BITS];
+    signal input b[BITS];
+    signal output out[BITS];
+    signal output carrybit;
+
+    var lin = 0;
+    var lout = 0;
+
+    var k;
+    var j = 0;
+
+    var e2;
+
+    // create e2 which
+    // is the numerical sum of 2^k
+    e2 = 1;
+    for (k = BITS - 1; k >= 0; k--) {
+        lin += (a[k] + b[k]) * e2;
+        e2 *= 2;
     }
 
-	for(var i = 0;i < BITS;i++) {
-		out[BITS - i - 1] <== adder.out[i];
-	}
+    e2 = 1;
+    for (k = BITS - 1; k >= 0; k--) {
+        out[k] <-- (lin >> j) & 1;
+        // Ensure out is binary
+        out[k] * (out[k] - 1) === 0;
+        lout += out[k] * e2;
+        e2 *= 2;
+        j += 1;
+    }
+
+    carrybit <-- (lin >> j) & 1;
+    // Ensure out is binary
+    carrybit * (carrybit - 1) === 0;
+    lout += carrybit * e2;
+
+    carrybit*0 === 0;
+
+    // Ensure the sum matches
+    lin === lout;
 }
 
 /**
