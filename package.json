@@ -1,6 +1,6 @@
 {
   "name": "@reclaimprotocol/circom-chacha20",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Circom implementation of ChaCha20",
   "main": "lib/index.js",
   "scripts": {
