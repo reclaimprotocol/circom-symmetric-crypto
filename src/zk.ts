@@ -1,5 +1,5 @@
 import { PrivateInput, Proof, PublicInput, UintArray, ZKOperator } from "./types"
-import { makeUintArray, padArray, padU8ToU32Array, toUintArray } from "./utils"
+import { BITS_PER_WORD, bitsToUintArray, makeUintArray, padArray, padU8ToU32Array, toUintArray, uintArrayToBits } from "./utils"
 
 // chunk size of data that is input to the ZK circuit
 // in 32-bit words
@@ -45,18 +45,18 @@ export async function generateProof(
 
 	const { proof, publicSignals } = await operator.groth16FullProve(
 		{
-			key: Array.from(keyU32),
-			nonce: Array.from(nonce),
-			counter: startCounter,
-			in: Array.from(ciphertextArray),
+			key: uintArrayToBits(keyU32),
+			nonce: uintArrayToBits(nonce),
+			counter: uintArrayToBits([startCounter])[0],
+			in: uintArrayToBits(ciphertextArray),
 		},
 	)
 
 	return {
 		proofJson: JSON.stringify(proof),
-		plaintext: makeUintArray(
+		plaintext: bitsToUintArray(
 			publicSignals
-				.slice(0, ZK_CIRCUIT_CHUNK_SIZE)
+				.slice(0, ciphertextArray.length * BITS_PER_WORD)
 				.map((x) => +x)
 		)
 	}
@@ -107,9 +107,9 @@ function getSerialisedPublicInputs(
 	}
 ) {
 	return [
-		...Array.from(decryptedRedactedCiphertext),
-		...Array.from(ciphertext),
-	]
+		...uintArrayToBits(decryptedRedactedCiphertext),
+		...uintArrayToBits(ciphertext),
+	].flat()
 }
 
 function normaliseCiphertextForZk(ciphertext: Uint8Array): UintArray {

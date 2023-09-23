@@ -1,5 +1,5 @@
 pragma circom 2.0.0;
 
-include "../generics.circom";
+include "../generics-bits.circom";
 
-component main = XorWords(1, 32);
+component main = XorBits(32);

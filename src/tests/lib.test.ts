@@ -5,7 +5,8 @@ import {
 	makeLocalSnarkJsZkOperator,
 	verifyProof,
 	toUint8Array,
-	ZKOperator
+	ZKOperator,
+	toUintArray
 } from '../index'
 import { encryptData } from "./utils";
 
@@ -21,7 +22,8 @@ describe('Library Tests', () => {
 	})
 
 	it('should verify encrypted data', async() => {
-		const plaintext = Buffer.alloc(ENC_LENGTH, 1)
+		const plaintext = new Uint8Array(ENC_LENGTH)
+			.fill(1)
 
 		const privInputs: PrivateInput = {
 			key: Buffer.alloc(32, 2),
@@ -33,6 +35,12 @@ describe('Library Tests', () => {
 
 		const pubInputs = { ciphertext }
 		const proof = await generateProof(privInputs, pubInputs, operator)
+		expect(
+			toUint8Array(proof.plaintext)
+				.slice(0, plaintext.length)
+		).toEqual(
+			plaintext
+		)
 		// client will send proof to witness
 		// witness would verify proof
 		await verifyProof(proof, pubInputs, operator)
@@ -69,7 +77,6 @@ describe('Library Tests', () => {
 		const pubInputs = { ciphertext }
 		const proof = await generateProof(privInputs, pubInputs, operator)
 		await verifyProof(proof, pubInputs, operator)
-		console.log(Buffer.from(toUint8Array(proof.plaintext)))
 		expect(
 			plaintext
 		).toEqual(
