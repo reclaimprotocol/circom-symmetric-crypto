@@ -2,6 +2,9 @@ pragma circom 2.0.0;
 
 /**
  * Add N bit numbers together
+ * copied in from: https://github.com/iden3/circomlib/blob/master/circuits/binsum.circom
+ * but rewritten slightly to reduce the final number of wires & labels
+ * and possibly look at reducing the number of constraints
  */
 template AddBits(BITS) {
     signal input a[BITS];
@@ -56,16 +59,14 @@ template RotateLeftBits(BITS, L) {
 }
 
 /**
- * XOR N M-bit words
+ * XOR BITS-bit words
 */
 template XorBits(BITS) {
 	signal input a[BITS];
     signal input b[BITS];
     signal output out[BITS];
-    var mid[BITS];
-
+    
     for (var k=0; k<BITS; k++) {
-        mid[k] = a[k]*b[k];
-        out[k] <== a[k] + b[k] - 2*mid[k];
+        out[k] <== a[k] + b[k] - 2*a[k]*b[k];
     }
 }
