@@ -1,42 +1,69 @@
+import { randomBytes } from 'crypto';
 import {
 	PrivateInput,
-	ZK_CIRCUIT_CHUNK_SIZE,
 	generateProof,
 	makeLocalSnarkJsZkOperator,
 	verifyProof,
-	toUint8Array,
 	ZKOperator,
-	toUintArray
+	EncryptionAlgorithm,
+	CONFIG,
 } from '../index'
 import { encryptData } from "./utils";
 
-const ENC_LENGTH = 45
-
 jest.setTimeout(20_000)
 
-describe('Library Tests', () => {
+const ALL_ALGOS: EncryptionAlgorithm[] = [
+	'chacha20',
+	'aes-256-ctr'
+]
+
+const ALG_TEST_CONFIG = {
+	'chacha20': {
+		encLength: 45,
+	},
+	'aes-256-ctr': {
+		encLength: 44,
+	},
+}
+
+describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
+
+	const {
+		encLength,
+	} = ALG_TEST_CONFIG[algorithm]
+	const {
+		bitsPerWord,
+		chunkSize,
+	} = CONFIG[algorithm]
+
+	const chunkSizeBytes = chunkSize * bitsPerWord / 8
 
 	let operator: ZKOperator
 	beforeAll(async() => {
-		operator = await makeLocalSnarkJsZkOperator()
+		operator = await makeLocalSnarkJsZkOperator(algorithm)
 	})
 
 	it('should verify encrypted data', async() => {
-		const plaintext = new Uint8Array(ENC_LENGTH)
-			.fill(1)
+		const plaintext = new Uint8Array(randomBytes(encLength))
 
 		const privInputs: PrivateInput = {
 			key: Buffer.alloc(32, 2),
 			iv: Buffer.alloc(12, 3),
-			startCounter: 1,
+			offset: 0,
 		}
 
-		const ciphertext = encryptData(plaintext, privInputs.key, privInputs.iv)
+		const ciphertext = encryptData(
+			algorithm,
+			plaintext,
+			privInputs.key,
+			privInputs.iv
+		)
 
 		const pubInputs = { ciphertext }
-		const proof = await generateProof(privInputs, pubInputs, operator)
+		const proof = await generateProof(algorithm, privInputs, pubInputs, operator)
+		// ensure the ZK decrypted data matches the plaintext
 		expect(
-			toUint8Array(proof.plaintext)
+			proof.plaintext
 				.slice(0, plaintext.length)
 		).toEqual(
 			plaintext
@@ -46,42 +73,64 @@ describe('Library Tests', () => {
 		await verifyProof(proof, pubInputs, operator)
 	})
 
-	it('should fail to verify incorrect data', async() => {
-		const plaintext = Buffer.alloc(ENC_LENGTH, 1)
+	it('should verify encrypted data with another counter', async() => {
+		const totalPlaintext = new Uint8Array(randomBytes(chunkSizeBytes * 5))
+		// use a chunk in the middle
+		const offset = 2
+		const plaintext = totalPlaintext
+			.subarray(chunkSizeBytes*offset, chunkSizeBytes * (offset + 1))
 
 		const privInputs: PrivateInput = {
 			key: Buffer.alloc(32, 2),
 			iv: Buffer.alloc(12, 3),
-			startCounter: 1,
+			offset,
 		}
 
-		const ciphertext = encryptData(plaintext, privInputs.key, privInputs.iv)
+		const totalCiphertext = encryptData(
+			algorithm,
+			totalPlaintext,
+			privInputs.key,
+			privInputs.iv
+		)
+		const ciphertext = totalCiphertext
+			.subarray(chunkSizeBytes*offset, chunkSizeBytes * (offset + 1))
+
+		const pubInputs = { ciphertext }
+		const proof = await generateProof(algorithm, privInputs, pubInputs, operator)
+		// ensure the ZK decrypted data matches the plaintext
+		expect(
+			proof.plaintext
+				.slice(0, plaintext.length)
+		).toEqual(
+			plaintext
+		)
+	})
+
+	it('should fail to verify incorrect data', async() => {
+		const plaintext = Buffer.alloc(encLength, 1)
+
+		const privInputs: PrivateInput = {
+			key: Buffer.alloc(32, 2),
+			iv: Buffer.alloc(12, 3),
+			offset: 0,
+		}
+
+		const ciphertext = encryptData(
+			algorithm,
+			plaintext,
+			privInputs.key,
+			privInputs.iv
+		)
 		const pubInputs = { ciphertext }
 
-		const proof = await generateProof(privInputs, pubInputs, operator)
-		proof.plaintext = new Uint32Array(ZK_CIRCUIT_CHUNK_SIZE)
+		const proof = await generateProof(algorithm, privInputs, pubInputs, operator)
+		// fill output with 0s
+		for(let i = 0;i < proof.plaintext.length;i++) {
+			proof.plaintext[i] = 0
+		}
 
 		await expect(
 			verifyProof(proof, pubInputs, operator)
 		).rejects.toHaveProperty('message', 'invalid proof')
-	})
-
-	it('decrypted data should match plaintext', async() => {
-		const plaintext = Buffer.from('My cool API secret is "')
-		const privInputs: PrivateInput = {
-			key: Buffer.alloc(32, 2),
-			iv: Buffer.alloc(12, 3),
-			startCounter: 1,
-		}
-		const ciphertext = encryptData(plaintext, privInputs.key, privInputs.iv)
-		const pubInputs = { ciphertext }
-		const proof = await generateProof(privInputs, pubInputs, operator)
-		await verifyProof(proof, pubInputs, operator)
-		expect(
-			plaintext
-		).toEqual(
-			Buffer.from(toUint8Array(proof.plaintext))
-				.subarray(0, plaintext.length)
-		)
 	})
 })

@@ -1,16 +1,19 @@
+export type EncryptionAlgorithm = 'aes-256-ctr' | 'chacha20'
+
 // the Array type used in the circuit
 // it's a Uint32Array, as all ChaCha20 operations
 // are done on 32-bit words
 export type UintArray = Uint32Array
 
 export type Proof = {
+	algorithm: EncryptionAlgorithm
 	/** serialised SnarkJS proof */
 	proofJson: string
 	/**
 	 * the plaintext obtained as an output
 	 * of the ZK circuit
 	 */
-	plaintext: UintArray
+	plaintext: Uint8Array
 }
 
 /**
@@ -58,10 +61,11 @@ export type PrivateInput = {
 	/** 192 bit IV for the ciphertext decryption */
 	iv: Uint8Array
 	/**
-	 * counter to start decryption from
-	 * @minimum 1
+	 * decryption offset in chunks
+	 * Specify 0 for the first chunk
+	 * @default 0
 	 * */
-	startCounter: number
+	offset: number
 }
 
 export type PublicInput = {

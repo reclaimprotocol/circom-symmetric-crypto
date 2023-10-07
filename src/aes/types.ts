@@ -2,6 +2,8 @@
 export type Proof = {
 	/** serialised SnarkJS proof */
 	proofJson: string
+
+	plaintext: Uint8Array
 }
 
 export type VerificationKey = {

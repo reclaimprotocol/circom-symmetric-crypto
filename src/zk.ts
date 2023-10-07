@@ -1,13 +1,6 @@
-import { PrivateInput, Proof, PublicInput, UintArray, ZKOperator } from "./types"
-import { BITS_PER_WORD, bitsToUintArray, makeUintArray, padArray, padU8ToU32Array, toUintArray, uintArrayToBits } from "./utils"
-
-// chunk size of data that is input to the ZK circuit
-// in 32-bit words
-export const ZK_CIRCUIT_CHUNK_SIZE = 16
-// key size in bytes
-export const KEY_SIZE_BYTES = 32
-// iv size in bytes
-export const IV_SIZE_BYTES = 12
+import { EncryptionAlgorithm, PrivateInput, Proof, PublicInput, ZKOperator } from "./types"
+import { CONFIG } from "./config"
+import { getCounterForChunk } from "./utils"
 
 /**
  * Generate ZK proof for CHACHA20-CTR encryption.
@@ -22,43 +15,65 @@ export const IV_SIZE_BYTES = 12
  * @param zkParams ZK params -- verification key and circuit wasm
  */
 export async function generateProof(
+	alg: EncryptionAlgorithm,
 	{
 		key,
 		iv,
-		startCounter,
+		offset,
 	}: PrivateInput,
 	{ ciphertext }: PublicInput,
 	operator: ZKOperator
 ): Promise<Proof> {
-	if(key.length !== KEY_SIZE_BYTES) {
-		throw new Error(`key must be ${KEY_SIZE_BYTES} bytes`)
+	const {
+		keySizeBytes,
+		ivSizeBytes,
+		bitsPerWord,
+		chunkSize,
+		isLittleEndian,
+		uint8ArrayToBits,
+		bitsToUint8Array
+	} = CONFIG[alg]
+	if(key.length !== keySizeBytes) {
+		throw new Error(`key must be ${keySizeBytes} bytes`)
 	}
-	if(iv.length !== IV_SIZE_BYTES) {
-		throw new Error(`iv must be ${IV_SIZE_BYTES} bytes`)
+	if(iv.length !== ivSizeBytes) {
+		throw new Error(`iv must be ${ivSizeBytes} bytes`)
 	}
 
-	const ciphertextArray = normaliseCiphertextForZk(
+	const startCounter = getCounterForChunk(alg, offset)
+	const ciphertextArray = padCiphertextToChunkSize(
+		alg,
 		ciphertext,
 	)
-	const keyU32 = toUintArray(key)
-	const nonce = toUintArray(iv)
-
 	const { proof, publicSignals } = await operator.groth16FullProve(
 		{
-			key: uintArrayToBits(keyU32),
-			nonce: uintArrayToBits(nonce),
-			counter: uintArrayToBits([startCounter])[0],
-			in: uintArrayToBits(ciphertextArray),
+			key: uint8ArrayToBits(key),
+			nonce: uint8ArrayToBits(iv),
+			counter: serialiseCounter(),
+			in: uint8ArrayToBits(ciphertextArray),
 		},
 	)
 
+	const totalBits = chunkSize * bitsPerWord
+
 	return {
+		algorithm: alg,
 		proofJson: JSON.stringify(proof),
-		plaintext: bitsToUintArray(
+		plaintext: bitsToUint8Array(
 			publicSignals
-				.slice(0, ciphertextArray.length * BITS_PER_WORD)
+				.slice(0, totalBits)
 				.map((x) => +x)
 		)
+	}
+
+	function serialiseCounter() {
+		const counterArr = new Uint8Array(4)
+		const counterView = new DataView(counterArr.buffer)
+		counterView.setUint32(0, startCounter, isLittleEndian)
+
+		const counterBits = uint8ArrayToBits(counterArr)
+			.flat()
+		return counterBits
 	}
 }
 
@@ -70,21 +85,25 @@ export async function generateProof(
  * @param zkey 
  */
 export async function verifyProof(
-	{ proofJson, plaintext }: Proof,
+	{ algorithm, proofJson, plaintext }: Proof,
 	{ ciphertext }: PublicInput,
 	operator: ZKOperator
 ): Promise<void> {
-	const ciphertextArray = normaliseCiphertextForZk(ciphertext)
+	const {
+		uint8ArrayToBits,
+	} = CONFIG[algorithm]
+	const ciphertextArray = padCiphertextToChunkSize(
+		algorithm,
+		ciphertext
+	)
 	if(ciphertextArray.length !== plaintext.length) {
 		throw new Error(`ciphertext and plaintext must be the same length`)
 	}
 	// serialise to array of numbers for the ZK circuit
-	const pubInputs = getSerialisedPublicInputs(
-		{
-			ciphertext: ciphertextArray,
-			decryptedRedactedCiphertext: plaintext
-		},
-	)
+	const pubInputs = [
+		...uint8ArrayToBits(plaintext),
+		...uint8ArrayToBits(ciphertextArray),
+	].flat()
 	const verified = await operator.groth16Verify(
 		pubInputs,
 		JSON.parse(proofJson),
@@ -95,32 +114,26 @@ export async function verifyProof(
 	}
 }
 
-/**
- * Serialise public inputs to array of numbers for the ZK circuit
- * the format is spread (output, ciphertext, redactedPlaintext)
- * @param inp 
- */
-function getSerialisedPublicInputs(
-	{ decryptedRedactedCiphertext, ciphertext }: {
-		decryptedRedactedCiphertext: UintArray
-		ciphertext: UintArray
-	}
+function padCiphertextToChunkSize(
+	alg: EncryptionAlgorithm,
+	ciphertext: Uint8Array
 ) {
-	return [
-		...uintArrayToBits(decryptedRedactedCiphertext),
-		...uintArrayToBits(ciphertext),
-	].flat()
-}
+	const {
+		chunkSize,
+		bitsPerWord,
+	} = CONFIG[alg]
 
-function normaliseCiphertextForZk(ciphertext: Uint8Array): UintArray {
-	const ciphertextArray = padArray(
-		toUintArray(padU8ToU32Array(ciphertext)),
-		ZK_CIRCUIT_CHUNK_SIZE
-	)
-
-	if(ciphertextArray.length !== ZK_CIRCUIT_CHUNK_SIZE) {
-		throw new Error(`ciphertext must be ${ZK_CIRCUIT_CHUNK_SIZE} words`)
+	const expectedSizeBytes = (chunkSize * bitsPerWord) / 8
+	if(ciphertext.length > expectedSizeBytes) {
+		throw new Error(`ciphertext must be <= ${expectedSizeBytes}b`)
 	}
 
-	return ciphertextArray
+	if(ciphertext.length < expectedSizeBytes) {
+		const arr = new Uint8Array(expectedSizeBytes).fill(0)
+		arr.set(ciphertext)
+
+		ciphertext = arr
+	}
+
+	return ciphertext
 }

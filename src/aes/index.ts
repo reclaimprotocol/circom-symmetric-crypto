@@ -1,5 +1,6 @@
 import * as snarkjs from "snarkjs"
 import { PrivateInput, Proof, PublicInput, VerificationKey } from "./types"
+import { bitsToUint8Array } from "../utils";
 
 
 const CIRCUIT_WASM_PATH = "./resources/aes/circuit.wasm"
@@ -21,7 +22,7 @@ export async function generateProof(
 	const ivCounter = buffer2bits(Buffer.from(iv));
 	const ct = buffer2bits(Buffer.from(ciphertext));
 
-	const { proof } = await snarkjs.groth16.fullProve(
+	const { proof, publicSignals } = await snarkjs.groth16.fullProve(
 		{
 			encKey:encKey,
 			iv:ivCounter,
@@ -33,6 +34,10 @@ export async function generateProof(
 
 	return {
 		proofJson: JSON.stringify(proof),
+		plaintext: bitsToUint8Array(
+			publicSignals
+				.slice(0, ct.length * 8)
+		)
 	}
 }
 

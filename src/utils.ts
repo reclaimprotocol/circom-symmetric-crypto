@@ -1,4 +1,5 @@
-import { UintArray } from "./types"
+import { CONFIG } from "./config"
+import { EncryptionAlgorithm, UintArray } from "./types"
 
 export const BITS_PER_WORD = 32
 
@@ -63,6 +64,40 @@ export function padArray(buf: UintArray, size: number): UintArray {
 }
 
 /**
+ * Converts a Uint8Array to an array of bits.
+ * BE order.
+ */
+export function uint8ArrayToBits(buff: Uint8Array | number[]) {
+	const res: number[] = []
+	for (let i = 0; i < buff.length; i++) {
+		for (let j = 0; j < 8; j++) {
+			if ((buff[i] >> 7-j) & 1) {
+				res.push(1);
+			} else {
+				res.push(0);
+			}
+		}
+	}
+	return res;
+}
+
+/**
+ * Converts an array of bits to a Uint8Array.
+ * Expecting BE order.
+ * @param bits 
+ * @returns 
+ */
+export function bitsToUint8Array(bits: number[]) {
+	const arr = new Uint8Array(bits.length / 8)
+	for(let i = 0;i < bits.length;i += 8) {
+		const uint = bitsToNum(bits.slice(i, i + 8))
+		arr[i / 8] = uint
+	}
+
+	return arr
+}
+
+/**
  * Converts a Uint32Array to an array of bits.
  * LE order.
  */
@@ -107,4 +142,30 @@ function bitsToNum(bits: number[]) {
 	}
 
 	return num
+}
+
+/**
+ * Combines a 12 byte nonce with a 4 byte counter
+ * to make a 16 byte IV.
+ */
+export function getFullCounterIv(nonce: Uint8Array, counter: number) {
+	const iv = Buffer.alloc(16)
+	iv.set(nonce, 0)
+	iv.writeUInt32BE(counter, 12)
+
+	return iv
+}
+
+/**
+ * Get the counter to use for a given chunk.
+ * @param algorithm 
+ * @param offsetInChunks 
+ * @returns 
+ */
+export function getCounterForChunk(
+	algorithm: EncryptionAlgorithm,
+	offsetInChunks: number
+) {
+	const { startCounter, blocksPerChunk } = CONFIG[algorithm]
+	return startCounter + offsetInChunks * blocksPerChunk
 }
