@@ -1,4 +1,4 @@
-import { Logger, ZKOperator, ZKParams } from "./types";
+import { EncryptionAlgorithm, Logger, ZKOperator, ZKParams } from "./types";
 
 type RemoteSnarkJsOperatorOpts = {
 	zkeyUrl: string
@@ -45,19 +45,23 @@ export async function makeRemoteSnarkJsZkOperator(
  * @param logger 
  * @returns 
  */
-export async function makeLocalSnarkJsZkOperator(logger?: Logger) {
+export async function makeLocalSnarkJsZkOperator(
+	type: EncryptionAlgorithm,
+	logger?: Logger
+) {
 	const { join } = await import('path')
+	const folder = `../resources/${type}`
 	return _makeSnarkJsZKOperator(
 		{
 			zkey: {
 				data: join(
 					__dirname,
-					'../resources/circuit_final.zkey'
+					`${folder}/circuit_final.zkey`
 				)
 			},
 			circuitWasm: join(
 				__dirname,
-				'../resources/circuit.wasm'
+				`${folder}/circuit.wasm`
 			),
 		},
 		logger

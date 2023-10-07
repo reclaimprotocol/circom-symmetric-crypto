@@ -1,6 +1,12 @@
-# Circom ChaCha20
+# Circom Symmetric Crypto
 
-This is a circom implementation of the ChaCha20 stream cipher. It lets a user prove that they have the key to a ChaCha20 encrypted message without revealing the key.
+This library contains circom zero-knowledge proof circuits for symmetric crypto operations. The goal is to enable a user to prove that they have the key to a symmetric encrypted message without revealing the key.
+
+The following algorithms are supported:
+- `chacha20`
+- `aes-256-ctr`
+	- which includes any CTR implementation. For eg. aes-256-gcm
+	- note: this is a WIP, and may be insecure (borrowed implementation from [electron labs](https://github.com/Electron-Labs/aes-circom))
 
 It uses the `groth16` implementaion in `snarkjs` to generate the proof.
 
@@ -21,7 +27,7 @@ npm install snarkjs
 ### Generating Proof
 
 ```ts
-import { generateProof, verifyProof, makeLocalSnarkJsZkOperator, toUint8Array } from '@reclaimprotocol/circom-chacha20'
+import { generateProof, verifyProof, makeLocalSnarkJsZkOperator, toUint8Array } from '@reclaimprotocol/circom-symmetric-crypto'
 
 const key = randomBytes(16)
 const iv = randomBytes(12)
@@ -38,14 +44,15 @@ const {
 	// the plaintext, obtained from the output of the circuit
 	plaintext,
 } = await generateProof(
+	'chacha20',
 	// key, iv & counter are the private inputs to the circuit
 	{
 		key,
 		iv,
 		// this is the counter from which to start
-		// the chacha20 stream cipher. Read about
+		// the stream cipher. Read about
 		// the counter here: https://en.wikipedia.org/wiki/Stream_cipher
-		startCounter: 1
+		offset: 0
 	},
 	// the public ciphertext input to the circuit
 	{ ciphertext },
@@ -69,7 +76,7 @@ Continuing from the above example:
 // will assert the proof is valid,
 // otherwise it will throw an error
 await verifyProof(
-	{ proofJson, plaintext },
+	{ proofJson, plaintext, algorithm: 'chacha20' },
 	{ ciphertext },
 	zkOperator
 )
@@ -97,7 +104,8 @@ Official Ptau file for bn128 with 256k max constraints can be downloaded by runn
 npm run download:ptau
 ```
 
-Build the circuit via `npm run build:circuit`
+Build the circuits via `npm run build:circuit-{alg}`.
+For eg. `npm run build:circuit-chacha20`
 
 ### Regenerating the Verification Key
 

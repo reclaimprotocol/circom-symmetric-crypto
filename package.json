@@ -1,11 +1,12 @@
 {
-  "name": "@reclaimprotocol/circom-chacha20",
+  "name": "@reclaimprotocol/circom-symmetric-crypto",
   "version": "1.1.0",
   "description": "Circom implementation of ChaCha20",
   "main": "lib/index.js",
   "scripts": {
     "test": "NODE_ENV=test jest --forceExit --detectOpenHandles",
-    "build:circuit": "sh scripts/build-circuit.sh",
+    "build:circuit-chacha20": "sh scripts/build-circuit.sh",
+    "build:circuit-aes-256-ctr": "sh scripts/build-circuit-aes-256-ctr.sh",
     "build:tsc": "npm exec tsc",
     "generate:ptau": "sh scripts/generate-ptau.sh",
     "download:ptau": "sh scripts/download-ptau.sh",
@@ -27,6 +28,7 @@
     "@types/jest": "^29.5.5",
     "@types/node": "^18.17.18",
     "circom_tester": "^0.0.19",
+    "circomlib": "^2.0.5",
     "jest": "^29.7.0",
     "snarkjs": "^0.7.1",
     "ts-jest": "^29.1.1",
