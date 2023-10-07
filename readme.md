@@ -6,6 +6,7 @@ The following algorithms are supported:
 - `chacha20`
 - `aes-256-ctr`
 	- which includes any CTR implementation. For eg. aes-256-gcm
+	- note: this is a WIP, and may be insecure (borrowed implementation from [electron labs](https://github.com/Electron-Labs/aes-circom))
 
 It uses the `groth16` implementaion in `snarkjs` to generate the proof.
 
