@@ -1,6 +1,6 @@
 pragma circom 2.0.0;
 
-include "../generics-bits.circom";
+include "../chacha20/generics-bits.circom";
 
 /**
 * Rotate in all directions required by
