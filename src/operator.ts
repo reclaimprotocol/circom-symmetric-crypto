@@ -5,6 +5,11 @@ type RemoteSnarkJsOperatorOpts = {
 	circuitWasmUrl: string
 }
 
+type WitnessData = {
+	type: 'mem'
+	data?: Uint8Array
+}
+
 /**
  * Use for browser based environments, where we can't
  * load the WASM and zkey from the filesystem
@@ -77,8 +82,13 @@ function _makeSnarkJsZKOperator(
 	const snarkjs = require('snarkjs')
 
 	return {
-		groth16FullProve(input) {
-			return snarkjs.groth16.fullProve(input, circuitWasm, zkey.data, logger)
+		async generateWitness(input) {
+			const wtns: WitnessData = { type: 'mem' }
+			await snarkjs.wtns.calculate(input, circuitWasm, wtns, logger)
+			return wtns.data!
+		},
+		async groth16Prove(witness) {
+			return snarkjs.groth16.prove(zkey.data, witness, logger)
 		},
 		async groth16Verify(publicSignals, proof) {
 			if(!zkey.json) {

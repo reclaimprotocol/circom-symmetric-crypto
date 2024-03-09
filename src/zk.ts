@@ -16,6 +16,46 @@ import { getCounterForChunk } from "./utils"
  */
 export async function generateProof(
 	alg: EncryptionAlgorithm,
+	privInput: PrivateInput,
+	pubInput: PublicInput,
+	operator: ZKOperator
+): Promise<Proof> {
+	const {
+		bitsPerWord,
+		chunkSize,
+		bitsToUint8Array
+	} = CONFIG[alg]
+	const witness = await generateZkWitness(
+		alg,
+		privInput,
+		pubInput,
+		operator,
+	)
+	const {
+		proof,
+		publicSignals
+	} = await operator.groth16Prove(witness)
+
+	const totalBits = chunkSize * bitsPerWord
+
+	return {
+		algorithm: alg,
+		proofJson: JSON.stringify(proof),
+		plaintext: bitsToUint8Array(
+			publicSignals
+				.slice(0, totalBits)
+				.map((x) => +x)
+		)
+	}
+}
+
+/**
+ * Generate a ZK witness for the symmetric encryption circuit.
+ * This witness can then be used to generate a ZK proof,
+ * using the operator's groth16Prove function.
+ */
+export async function generateZkWitness(
+	alg: EncryptionAlgorithm,
 	{
 		key,
 		iv,
@@ -23,15 +63,12 @@ export async function generateProof(
 	}: PrivateInput,
 	{ ciphertext }: PublicInput,
 	operator: ZKOperator
-): Promise<Proof> {
+) {
 	const {
 		keySizeBytes,
 		ivSizeBytes,
-		bitsPerWord,
-		chunkSize,
 		isLittleEndian,
 		uint8ArrayToBits,
-		bitsToUint8Array
 	} = CONFIG[alg]
 	if(key.length !== keySizeBytes) {
 		throw new Error(`key must be ${keySizeBytes} bytes`)
@@ -45,26 +82,13 @@ export async function generateProof(
 		alg,
 		ciphertext,
 	)
-	const { proof, publicSignals } = await operator.groth16FullProve(
-		{
-			key: uint8ArrayToBits(key),
-			nonce: uint8ArrayToBits(iv),
-			counter: serialiseCounter(),
-			in: uint8ArrayToBits(ciphertextArray),
-		},
-	)
-
-	const totalBits = chunkSize * bitsPerWord
-
-	return {
-		algorithm: alg,
-		proofJson: JSON.stringify(proof),
-		plaintext: bitsToUint8Array(
-			publicSignals
-				.slice(0, totalBits)
-				.map((x) => +x)
-		)
-	}
+	const witness = await operator.generateWitness({
+		key: uint8ArrayToBits(key),
+		nonce: uint8ArrayToBits(iv),
+		counter: serialiseCounter(),
+		in: uint8ArrayToBits(ciphertextArray),
+	},)
+	return witness
 
 	function serialiseCounter() {
 		const counterArr = new Uint8Array(4)
@@ -89,9 +113,7 @@ export async function verifyProof(
 	{ ciphertext }: PublicInput,
 	operator: ZKOperator
 ): Promise<void> {
-	const {
-		uint8ArrayToBits,
-	} = CONFIG[algorithm]
+	const { uint8ArrayToBits } = CONFIG[algorithm]
 	const ciphertextArray = padCiphertextToChunkSize(
 		algorithm,
 		ciphertext

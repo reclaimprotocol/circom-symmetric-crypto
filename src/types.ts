@@ -31,9 +31,21 @@ export type VerificationKey = {
 type ZKProof = any
 
 type ZKProofOutput = {
-	proof: ZKProof,
+	proof: ZKProof
 	publicSignals: number[]
 }
+
+type ZKInputItem = number[] | number[][]
+
+type ZKProofInput = {
+	key: ZKInputItem
+	nonce: ZKInputItem
+	counter: ZKInputItem
+	in: ZKInputItem
+}
+
+type AnyZKProofInput = ZKProofInput
+	| { witness: Uint8Array }
 
 /**
  * the operator to use for proving and verifying the groth16
@@ -43,7 +55,8 @@ type ZKProofOutput = {
  * for different implementations
  */
 export type ZKOperator = {
-	groth16FullProve<T>(input: T): Promise<ZKProofOutput>
+	generateWitness(input: ZKProofInput): Promise<Uint8Array>
+	groth16Prove(witness: Uint8Array): Promise<ZKProofOutput>
 	groth16Verify(
 		publicSignals: number[],
 		proof: ZKProof
