@@ -64,8 +64,8 @@ export type ZKOperator = {
 }
 
 export type ZKParams = {
-	zkey: VerificationKey
-	circuitWasm: ZKInput
+	getZkey: () => Promise<VerificationKey> | VerificationKey
+	getCircuitWasm: () => Promise<ZKInput> | ZKInput
 }
 
 export type PrivateInput = {

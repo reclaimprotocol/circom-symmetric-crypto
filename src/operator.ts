@@ -1,4 +1,4 @@
-import { EncryptionAlgorithm, Logger, ZKOperator, ZKParams } from "./types";
+import { EncryptionAlgorithm, Logger, VerificationKey, ZKOperator, ZKParams } from "./types";
 
 type RemoteSnarkJsOperatorOpts = {
 	zkeyUrl: string
@@ -38,8 +38,16 @@ export async function makeRemoteSnarkJsZkOperator(
 
 	return _makeSnarkJsZKOperator(
 		{
-			zkey: { data: new Uint8Array(zkey) },
-			circuitWasm: new Uint8Array(wasm)
+			getZkey: async() => {
+				const rslt = await fetch(zkeyUrl)
+				const zkeyBuff = await rslt.arrayBuffer()
+				return { data: new Uint8Array(zkeyBuff) }
+			},
+			getCircuitWasm: async() => {
+				const rslt = await fetch(circuitWasmUrl)
+				const wasm = await rslt.arrayBuffer()
+				return new Uint8Array(wasm)
+			}
 		},
 		logger
 	)
@@ -58,13 +66,13 @@ export async function makeLocalSnarkJsZkOperator(
 	const folder = `../resources/${type}`
 	return _makeSnarkJsZKOperator(
 		{
-			zkey: {
+			getZkey: () => ({
 				data: join(
 					__dirname,
 					`${folder}/circuit_final.zkey`
 				)
-			},
-			circuitWasm: join(
+			}),
+			getCircuitWasm: () => join(
 				__dirname,
 				`${folder}/circuit.wasm`
 			),
@@ -74,20 +82,24 @@ export async function makeLocalSnarkJsZkOperator(
 }
 
 function _makeSnarkJsZKOperator(
-	{ circuitWasm, zkey }: ZKParams,
+	{ getCircuitWasm, getZkey }: ZKParams,
 	logger?: Logger
 ): ZKOperator {
 	// require here to avoid loading snarkjs in
 	// any unsupported environments
 	const snarkjs = require('snarkjs')
+	let zkey: VerificationKey
+	let circuitWasm: Uint8Array | string
 
 	return {
 		async generateWitness(input) {
+			circuitWasm ||= await getCircuitWasm()
 			const wtns: WitnessData = { type: 'mem' }
 			await snarkjs.wtns.calculate(input, circuitWasm, wtns, logger)
 			return wtns.data!
 		},
 		async groth16Prove(witness) {
+			zkey ||= await getZkey()
 			return snarkjs.groth16.prove(zkey.data, witness, logger)
 		},
 		async groth16Verify(publicSignals, proof) {
