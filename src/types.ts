@@ -28,7 +28,7 @@ export type VerificationKey = {
 	json?: any
 }
 
-type ZKProof = any
+type ZKProof = { [_: string]: any } | string
 
 type ZKProofOutput = {
 	proof: ZKProof

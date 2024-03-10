@@ -40,7 +40,9 @@ export async function generateProof(
 
 	return {
 		algorithm: alg,
-		proofJson: JSON.stringify(proof),
+		proofJson: typeof proof === 'string'
+			? proof
+			: JSON.stringify(proof),
 		plaintext: bitsToUint8Array(
 			publicSignals
 				.slice(0, totalBits)
