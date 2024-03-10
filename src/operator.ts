@@ -1,4 +1,4 @@
-import { EncryptionAlgorithm, Logger, VerificationKey, ZKOperator, ZKParams } from "./types";
+import { CircuitWasm, EncryptionAlgorithm, Logger, VerificationKey, ZKOperator, ZKParams } from "./types";
 
 type RemoteSnarkJsOperatorOpts = {
 	zkeyUrl: string
@@ -18,14 +18,6 @@ export async function makeRemoteSnarkJsZkOperator(
 	{ zkeyUrl, circuitWasmUrl }: RemoteSnarkJsOperatorOpts,
 	logger?: Logger
 ) {
-	const [wasm, zkey] = await Promise.all([
-		// the circuit WASM
-		fetch(circuitWasmUrl)
-			.then((r) => r.arrayBuffer()),
-		fetch(zkeyUrl)
-			.then((r) => r.arrayBuffer()),
-	])
-
 	// snarkjs needs to know that we're
 	// in a browser environment
 	if(
@@ -88,26 +80,38 @@ function _makeSnarkJsZKOperator(
 	// require here to avoid loading snarkjs in
 	// any unsupported environments
 	const snarkjs = require('snarkjs')
-	let zkey: VerificationKey
-	let circuitWasm: Uint8Array | string
+	let zkey: Promise<VerificationKey> | VerificationKey
+	let circuitWasm: Promise<CircuitWasm> | CircuitWasm 
 
 	return {
 		async generateWitness(input) {
-			circuitWasm ||= await getCircuitWasm()
+			circuitWasm ||= getCircuitWasm()
 			const wtns: WitnessData = { type: 'mem' }
-			await snarkjs.wtns.calculate(input, circuitWasm, wtns, logger)
+			await snarkjs.wtns.calculate(input, await circuitWasm, wtns, logger)
 			return wtns.data!
 		},
 		async groth16Prove(witness) {
-			zkey ||= await getZkey()
-			return snarkjs.groth16.prove(zkey.data, witness, logger)
+			zkey ||= getZkey()
+			return snarkjs.groth16.prove(
+				(await zkey).data,
+				witness,
+				logger
+			)
 		},
 		async groth16Verify(publicSignals, proof) {
-			if(!zkey.json) {
-				zkey.json = await snarkjs.zKey.exportVerificationKey(zkey.data)
+			zkey ||= getZkey()
+			const zkeyResult = await zkey
+			if(!zkeyResult.json) {
+				zkeyResult.json = await snarkjs.zKey
+					.exportVerificationKey(zkeyResult.data)
 			}
 
-			return snarkjs.groth16.verify(zkey.json!, publicSignals, proof, logger)
+			return snarkjs.groth16.verify(
+				zkeyResult.json!,
+				publicSignals,
+				proof,
+				logger
+			)
 		}
 	}
 }

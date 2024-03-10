@@ -28,6 +28,8 @@ export type VerificationKey = {
 	json?: any
 }
 
+export type CircuitWasm = Uint8Array | string
+
 type ZKProof = { [_: string]: any } | string
 
 type ZKProofOutput = {
@@ -43,9 +45,6 @@ type ZKProofInput = {
 	counter: ZKInputItem
 	in: ZKInputItem
 }
-
-type AnyZKProofInput = ZKProofInput
-	| { witness: Uint8Array }
 
 /**
  * the operator to use for proving and verifying the groth16
@@ -65,7 +64,7 @@ export type ZKOperator = {
 
 export type ZKParams = {
 	getZkey: () => Promise<VerificationKey> | VerificationKey
-	getCircuitWasm: () => Promise<ZKInput> | ZKInput
+	getCircuitWasm: () => Promise<CircuitWasm> | CircuitWasm
 }
 
 export type PrivateInput = {
