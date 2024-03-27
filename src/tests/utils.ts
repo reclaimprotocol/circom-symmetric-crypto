@@ -13,7 +13,11 @@ export function encryptData(
 	const cipher = createCipheriv(
 		algorithm === 'chacha20'
 			? 'chacha20-poly1305'
-			: 'aes-256-gcm',
+			: (
+				algorithm === 'aes-256-ctr'
+					? 'aes-256-gcm'
+					: 'aes-128-gcm'
+			),
 		key,
 		iv,
 	)

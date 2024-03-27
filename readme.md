@@ -5,6 +5,7 @@ This library contains circom zero-knowledge proof circuits for symmetric crypto 
 The following algorithms are supported:
 - `chacha20`
 - `aes-256-ctr`
+- `aes-128-ctr`
 	- which includes any CTR implementation. For eg. aes-256-gcm
 	- note: this is a WIP, and may be insecure (borrowed implementation from [electron labs](https://github.com/Electron-Labs/aes-circom))
 
@@ -104,8 +105,9 @@ Official Ptau file for bn128 with 256k max constraints can be downloaded by runn
 npm run download:ptau
 ```
 
-Build the circuits via `npm run build:circuit-{alg}`.
-For eg. `npm run build:circuit-chacha20`
+Build the circuits via `ALG={alg} npm run build:circuit`.
+For eg. `ALG=chacha20 npm run build:circuit`
+Note: `ALG` is the same as mentioned in the first section of this readme.
 
 ### Regenerating the Verification Key
 

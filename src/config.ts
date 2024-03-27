@@ -31,5 +31,18 @@ export const CONFIG = {
 		isLittleEndian: false,
 		uint8ArrayToBits,
 		bitsToUint8Array,
+	},
+	'aes-128-ctr': {
+		chunkSize: 64,
+		bitsPerWord: 8,
+		keySizeBytes: 16,
+		ivSizeBytes: 12,
+		startCounter: 2,
+		// num of blocks per chunk
+		blocksPerChunk: 4,
+		// AES circuit uses BE encoding
+		isLittleEndian: false,
+		uint8ArrayToBits,
+		bitsToUint8Array,
 	}
 }

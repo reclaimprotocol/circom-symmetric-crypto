@@ -14,7 +14,8 @@ jest.setTimeout(20_000)
 
 const ALL_ALGOS: EncryptionAlgorithm[] = [
 	'chacha20',
-	'aes-256-ctr'
+	'aes-256-ctr',
+	'aes-128-ctr',
 ]
 
 const ALG_TEST_CONFIG = {
@@ -22,6 +23,9 @@ const ALG_TEST_CONFIG = {
 		encLength: 45,
 	},
 	'aes-256-ctr': {
+		encLength: 44,
+	},
+	'aes-128-ctr': {
 		encLength: 44,
 	},
 }
@@ -34,6 +38,7 @@ describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
 	const {
 		bitsPerWord,
 		chunkSize,
+		keySizeBytes
 	} = CONFIG[algorithm]
 
 	const chunkSizeBytes = chunkSize * bitsPerWord / 8
@@ -47,7 +52,7 @@ describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
 		const plaintext = new Uint8Array(randomBytes(encLength))
 
 		const privInputs: PrivateInput = {
-			key: Buffer.alloc(32, 2),
+			key: Buffer.alloc(keySizeBytes, 2),
 			iv: Buffer.alloc(12, 3),
 			offset: 0,
 		}
@@ -60,7 +65,10 @@ describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
 		)
 
 		const pubInputs = { ciphertext }
-		const proof = await generateProof(algorithm, privInputs, pubInputs, operator)
+		const proof = await generateProof(
+			algorithm, privInputs,
+			pubInputs, operator
+		)
 		// ensure the ZK decrypted data matches the plaintext
 		expect(
 			proof.plaintext
@@ -81,7 +89,7 @@ describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
 			.subarray(chunkSizeBytes*offset, chunkSizeBytes * (offset + 1))
 
 		const privInputs: PrivateInput = {
-			key: Buffer.alloc(32, 2),
+			key: Buffer.alloc(keySizeBytes, 2),
 			iv: Buffer.alloc(12, 3),
 			offset,
 		}
@@ -110,7 +118,7 @@ describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
 		const plaintext = Buffer.alloc(encLength, 1)
 
 		const privInputs: PrivateInput = {
-			key: Buffer.alloc(32, 2),
+			key: Buffer.alloc(keySizeBytes, 2),
 			iv: Buffer.alloc(12, 3),
 			offset: 0,
 		}

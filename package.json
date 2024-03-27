@@ -5,8 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "test": "NODE_ENV=test jest --forceExit --detectOpenHandles",
-    "build:circuit-chacha20": "sh scripts/build-circuit.sh",
-    "build:circuit-aes-256-ctr": "sh scripts/build-circuit-aes-256-ctr.sh",
+    "build:circuit": "sh scripts/build-circuit.sh",
     "build:tsc": "npm exec tsc",
     "generate:ptau": "sh scripts/generate-ptau.sh",
     "download:ptau": "sh scripts/download-ptau.sh",

@@ -1,4 +1,6 @@
-export type EncryptionAlgorithm = 'aes-256-ctr' | 'chacha20'
+export type EncryptionAlgorithm = 'aes-256-ctr'
+	| 'aes-128-ctr'
+	| 'chacha20'
 
 // the Array type used in the circuit
 // it's a Uint32Array, as all ChaCha20 operations
