@@ -62,6 +62,15 @@ export type ZKOperator = {
 		publicSignals: number[],
 		proof: ZKProof
 	): Promise<boolean>
+	/**
+	 * Release any used resources. The operator
+	 * should still be usable after this call.
+	 *
+	 * This is useful for releasing any resources
+	 * in case ZK operations are not going to be
+	 * used for a while.
+	 */
+	release?(): void
 }
 
 export type ZKParams = {

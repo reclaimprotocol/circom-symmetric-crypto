@@ -80,14 +80,39 @@ function _makeSnarkJsZKOperator(
 	// require here to avoid loading snarkjs in
 	// any unsupported environments
 	const snarkjs = require('snarkjs')
-	let zkey: Promise<VerificationKey> | VerificationKey
-	let circuitWasm: Promise<CircuitWasm> | CircuitWasm 
+	let zkey: Promise<VerificationKey> | VerificationKey | undefined
+	let circuitWasm: Promise<CircuitWasm> | CircuitWasm | undefined
+	let wc: Promise<any> | undefined
 
 	return {
 		async generateWitness(input) {
 			circuitWasm ||= getCircuitWasm()
+			wc ||= (async() => {
+				if(!snarkjs.wtns.getWtnsCalculator) {
+					return
+				}
+
+				return snarkjs.wtns.getWtnsCalculator(
+					await circuitWasm,
+					logger
+				)
+			})()
+
 			const wtns: WitnessData = { type: 'mem' }
-			await snarkjs.wtns.calculate(input, await circuitWasm, wtns, logger)
+			if(await wc) {
+				await snarkjs.wtns.wtnsCalculateWithCalculator(
+					input,
+					await wc,
+					wtns,
+				)
+			} else {
+				await snarkjs.wtns.calculate(
+					input,
+					await circuitWasm,
+					wtns,
+				)
+			}
+			
 			return wtns.data!
 		},
 		async groth16Prove(witness) {
@@ -112,6 +137,11 @@ function _makeSnarkJsZKOperator(
 				proof,
 				logger
 			)
+		},
+		release() {
+			zkey = undefined
+			circuitWasm = undefined
+			wc = undefined
 		}
 	}
 }
