@@ -10,6 +10,10 @@ type WitnessData = {
 	data?: Uint8Array
 }
 
+// 5 pages is enough for the witness data
+// calculation
+const WITNESS_MEMORY_SIZE_PAGES = 5
+
 /**
  * Use for browser based environments, where we can't
  * load the WASM and zkey from the filesystem
@@ -92,10 +96,27 @@ function _makeSnarkJsZKOperator(
 					return
 				}
 
-				return snarkjs.wtns.getWtnsCalculator(
-					await circuitWasm,
-					logger
-				)
+				// hack to allocate a specific memory size
+				// because the Memory size isn't configurable
+				// in the circom_runtime package
+				const CurMemory = WebAssembly.Memory
+				WebAssembly.Memory = class extends WebAssembly.Memory {
+					constructor() {
+						console.log('Creating memory')
+						super({ initial: WITNESS_MEMORY_SIZE_PAGES })
+					}
+				}
+
+				try {
+					const rslt = await snarkjs.wtns.getWtnsCalculator(
+						await circuitWasm,
+						logger
+					)
+
+					return rslt
+				} finally {
+					WebAssembly.Memory = CurMemory
+				}
 			})()
 
 			const wtns: WitnessData = { type: 'mem' }
