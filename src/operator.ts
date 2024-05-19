@@ -1,4 +1,5 @@
 import { CircuitWasm, EncryptionAlgorithm, Logger, VerificationKey, ZKOperator, ZKParams } from "./types";
+import fetchRetry from 'fetch-retry';
 
 type RemoteSnarkJsOperatorOpts = {
 	zkeyUrl: string
@@ -32,21 +33,45 @@ export async function makeRemoteSnarkJsZkOperator(
 		window.process = { browser: true }
 	}
 
+
 	return _makeSnarkJsZKOperator(
 		{
-			getZkey: async() => {
-				const rslt = await fetch(zkeyUrl)
-				const zkeyBuff = await rslt.arrayBuffer()
-				return { data: new Uint8Array(zkeyBuff) }
+			getZkey: async () => {
+				const zkeyBuff = await fetchArrayBuffer(zkeyUrl)
+				return {data: new Uint8Array(zkeyBuff)}
+
 			},
-			getCircuitWasm: async() => {
-				const rslt = await fetch(circuitWasmUrl)
-				const wasm = await rslt.arrayBuffer()
+			getCircuitWasm: async () => {
+				const wasm = await fetchArrayBuffer(circuitWasmUrl)
 				return new Uint8Array(wasm)
 			}
 		},
 		logger
 	)
+
+	async function fetchArrayBuffer(url: string) {
+		const retries = 3
+		const fetchFunc = fetchRetry(fetch, {
+			retryOn: (attempt, error, response) => {
+				logger?.info(`Tying fetch ${url} attempt %d of %d...`, attempt, retries)
+				if (error !== null || response && response.status >= 400) {
+					return attempt < retries;
+				}
+				return false;
+			}
+		})
+
+		let response: Response
+		try {
+			response = await fetchFunc(url)
+		} catch (e) {
+			throw new Error(`Failed to fetch ${url} ${JSON.stringify([e, e.stack])}`)
+		}
+		if (!response.ok) {
+			throw new Error(`Failed to fetch ${url} ${JSON.stringify([response.status, response.statusText])}`)
+		}
+		return await response.arrayBuffer()
+	}
 }
 
 /**
