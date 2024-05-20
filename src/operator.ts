@@ -53,7 +53,7 @@ export async function makeRemoteSnarkJsZkOperator(
 		const retries = 3
 		const fetchFunc = fetchRetry(fetch, {
 			retryOn: (attempt, error, response) => {
-				logger?.info(`Tying fetch ${url} attempt %d of %d...`, attempt, retries)
+				logger?.info(`Trying to fetch ${url} attempt ${attempt} of ${retries}...`)
 				if (error !== null || response && response.status >= 400) {
 					return attempt < retries;
 				}
@@ -70,6 +70,7 @@ export async function makeRemoteSnarkJsZkOperator(
 		if (!response.ok) {
 			throw new Error(`Failed to fetch ${url} ${JSON.stringify([response.status, response.statusText])}`)
 		}
+		logger?.info(`Fetched ${url} successfully`)
 		return await response.arrayBuffer()
 	}
 }
