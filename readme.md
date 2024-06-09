@@ -14,7 +14,7 @@ It uses the `groth16` implementaion in `snarkjs` to generate the proof.
 ## Installation
 
 ```bash
-npm install git+https://github.com/reclaimprotocol/circom-chacha20
+npm install git+https://gitlab.reclaimprotocol.org/Reclaim/zk-symmetric-crypto
 ```
 
 If using on the browser, or nodejs, you will need to install `snarkjs` as well.
@@ -29,44 +29,69 @@ npm install snarkjs
 
 ```ts
 import { generateProof, verifyProof, makeLocalSnarkJsZkOperator, toUint8Array } from '@reclaimprotocol/circom-symmetric-crypto'
+import { createCipheriv, randomBytes } from 'crypto'
 
-const key = randomBytes(16)
-const iv = randomBytes(12)
-const data = 'Hello World!'
-const ciphertext = chacha20(key, iv, data)
+async function main() {
+	const key = randomBytes(32)
+	const iv = randomBytes(12)
+	const algorithm = 'chacha20'
+	const data = 'Hello World!'
 
-// the operator is the abstract interface for
-// the snarkjs library to generate & verify the proof
-const zkOperator = makeLocalSnarkJsZkOperator()
-// generate the proof that you have the key to the ciphertext
-const {
-	// groth16-snarkjs proof as a JSON string
-	proofJson,
-	// the plaintext, obtained from the output of the circuit
-	plaintext,
-} = await generateProof(
-	'chacha20',
-	// key, iv & counter are the private inputs to the circuit
-	{
-		key,
-		iv,
-		// this is the counter from which to start
-		// the stream cipher. Read about
-		// the counter here: https://en.wikipedia.org/wiki/Stream_cipher
-		offset: 0
-	},
-	// the public ciphertext input to the circuit
-	{ ciphertext },
-	zkOperator
-)
+	const cipher = createCipheriv('chacha20-poly1305', key, iv)
+	const ciphertext = Buffer.concat([
+		cipher.update(data),
+		cipher.final()
+	])
 
-// you can check that the plaintext obtained from the circuit
-// is the same as the plaintext obtained from the ciphertext
-const plaintextBuffer = toUint8Array(plaintext)
-	// slice in case the plaintext was padded
-	.slice(0, data.length)
-	.toString()
-console.log(plaintextBuffer) // "Hello World!"
+	// the operator is the abstract interface for
+	// the snarkjs library to generate & verify the proof
+	const zkOperator = await makeLocalSnarkJsZkOperator(algorithm)
+	// generate the proof that you have the key to the ciphertext
+	const {
+		// groth16-snarkjs proof as a JSON string
+		proofJson,
+		// the plaintext, obtained from the output of the circuit
+		plaintext,
+	} = await generateProof(
+		'chacha20',
+		// key, iv & counter are the private inputs to the circuit
+		{
+			key,
+			iv,
+			// this is the counter from which to start
+			// the stream cipher. Read about
+			// the counter here: https://en.wikipedia.org/wiki/Stream_cipher
+			offset: 0
+		},
+		// the public ciphertext input to the circuit
+		{ ciphertext },
+		zkOperator
+	)
+
+	// you can check that the plaintext obtained from the circuit
+	// is the same as the plaintext obtained from the ciphertext
+	const plaintextBuffer = plaintext
+		// slice in case the plaintext was padded
+		.slice(0, data.length)
+	// "Hello World!"
+	console.log(Buffer.from(plaintextBuffer).toString())
+
+	// you can verify the proof with the public inputs
+	// and the proof JSON string
+	await verifyProof(
+		{
+			proofJson,
+			plaintext,
+			algorithm
+		},
+		// the public inputs to the circuit
+		{ ciphertext },
+		zkOperator
+	)
+	console.log('Proof verified')
+}
+
+main()
 ```
 
 ### Verifying Proof
