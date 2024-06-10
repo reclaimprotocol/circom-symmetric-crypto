@@ -1,10 +1,4 @@
 import { CircuitWasm, EncryptionAlgorithm, Logger, VerificationKey, ZKOperator, ZKParams } from "./types";
-import fetchRetry from 'fetch-retry';
-
-type RemoteSnarkJsOperatorOpts = {
-	zkeyUrl: string
-	circuitWasmUrl: string
-}
 
 type WitnessData = {
 	type: 'mem'
@@ -14,66 +8,6 @@ type WitnessData = {
 // 5 pages is enough for the witness data
 // calculation
 const WITNESS_MEMORY_SIZE_PAGES = 5
-
-/**
- * Use for browser based environments, where we can't
- * load the WASM and zkey from the filesystem
- */
-export async function makeRemoteSnarkJsZkOperator(
-	{ zkeyUrl, circuitWasmUrl }: RemoteSnarkJsOperatorOpts,
-	logger?: Logger
-) {
-	// snarkjs needs to know that we're
-	// in a browser environment
-	if(
-		typeof window !== 'undefined'
-		&& window.process === undefined
-	) {
-		// @ts-ignore
-		window.process = { browser: true }
-	}
-
-
-	return _makeSnarkJsZKOperator(
-		{
-			getZkey: async () => {
-				const zkeyBuff = await fetchArrayBuffer(zkeyUrl)
-				return {data: new Uint8Array(zkeyBuff)}
-
-			},
-			getCircuitWasm: async () => {
-				const wasm = await fetchArrayBuffer(circuitWasmUrl)
-				return new Uint8Array(wasm)
-			}
-		},
-		logger
-	)
-
-	async function fetchArrayBuffer(url: string) {
-		const retries = 3
-		const fetchFunc = fetchRetry(fetch, {
-			retryOn: (attempt, error, response) => {
-				logger?.info(`Trying to fetch ${url} attempt ${attempt} of ${retries}...`)
-				if (error !== null || response && response.status >= 400) {
-					return attempt < retries;
-				}
-				return false;
-			}
-		})
-
-		let response: Response
-		try {
-			response = await fetchFunc(url)
-		} catch (e) {
-			throw new Error(`Failed to fetch ${url} ${JSON.stringify([e, e.stack])}`)
-		}
-		if (!response.ok) {
-			throw new Error(`Failed to fetch ${url} ${JSON.stringify([response.status, response.statusText])}`)
-		}
-		logger?.info(`Fetched ${url} successfully`)
-		return await response.arrayBuffer()
-	}
-}
 
 /**
  * Make a ZK operator from the snarkjs dependency
@@ -86,7 +20,7 @@ export async function makeLocalSnarkJsZkOperator(
 ) {
 	const { join } = await import('path')
 	const folder = `../resources/${type}`
-	return _makeSnarkJsZKOperator(
+	return makeSnarkJsZKOperator(
 		{
 			getZkey: () => ({
 				data: join(
@@ -103,7 +37,11 @@ export async function makeLocalSnarkJsZkOperator(
 	)
 }
 
-function _makeSnarkJsZKOperator(
+/**
+ * Make a SnarkJS ZK operator from the provided
+ * fns to get the circuit wasm and zkey
+ */
+export function makeSnarkJsZKOperator(
 	{ getCircuitWasm, getZkey }: ZKParams,
 	logger?: Logger
 ): ZKOperator {
