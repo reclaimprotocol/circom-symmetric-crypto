@@ -1,4 +1,4 @@
-import { EncryptionAlgorithm, PrivateInput, Proof, PublicInput, ZKOperator } from "./types"
+import { EncryptionAlgorithm, GenerateProofOpts, Proof, VerifyProofOpts } from "./types"
 import { CONFIG } from "./config"
 import { getCounterForChunk } from "./utils"
 
@@ -7,39 +7,24 @@ import { getCounterForChunk } from "./utils"
  * Circuit proves that the ciphertext is a
  * valid encryption of the given plaintext.
  * The plaintext can be partially redacted.
- * 
- * @param privateInput private input to the circuit
- * will include the key, iv, and counter 
- * @param pub public input to the circuit,
- * will include the ciphertext and redacted plaintext
- * @param zkParams ZK params -- verification key and circuit wasm
  */
-export async function generateProof(
-	alg: EncryptionAlgorithm,
-	privInput: PrivateInput,
-	pubInput: PublicInput,
-	operator: ZKOperator
-): Promise<Proof> {
+export async function generateProof(opts: GenerateProofOpts): Promise<Proof> {
+	const { algorithm, operator, logger } = opts
 	const {
 		bitsPerWord,
 		chunkSize,
 		bitsToUint8Array
-	} = CONFIG[alg]
-	const witness = await generateZkWitness(
-		alg,
-		privInput,
-		pubInput,
-		operator,
-	)
+	} = CONFIG[algorithm]
+	const witness = await generateZkWitness(opts)
 	const {
 		proof,
 		publicSignals
-	} = await operator.groth16Prove(witness)
+	} = await operator.groth16Prove(witness, logger)
 
 	const totalBits = chunkSize * bitsPerWord
 
 	return {
-		algorithm: alg,
+		algorithm,
 		proofJson: typeof proof === 'string'
 			? proof
 			: JSON.stringify(proof),
@@ -56,22 +41,23 @@ export async function generateProof(
  * This witness can then be used to generate a ZK proof,
  * using the operator's groth16Prove function.
  */
-export async function generateZkWitness(
-	alg: EncryptionAlgorithm,
-	{
+export async function generateZkWitness({
+	algorithm,
+	privateInput: {
 		key,
 		iv,
 		offset,
-	}: PrivateInput,
-	{ ciphertext }: PublicInput,
-	operator: ZKOperator
+	},
+	publicInput: { ciphertext },
+	operator
+}: GenerateProofOpts,
 ) {
 	const {
 		keySizeBytes,
 		ivSizeBytes,
 		isLittleEndian,
 		uint8ArrayToBits,
-	} = CONFIG[alg]
+	} = CONFIG[algorithm]
 	if(key.length !== keySizeBytes) {
 		throw new Error(`key must be ${keySizeBytes} bytes`)
 	}
@@ -79,9 +65,9 @@ export async function generateZkWitness(
 		throw new Error(`iv must be ${ivSizeBytes} bytes`)
 	}
 
-	const startCounter = getCounterForChunk(alg, offset)
+	const startCounter = getCounterForChunk(algorithm, offset)
 	const ciphertextArray = padCiphertextToChunkSize(
-		alg,
+		algorithm,
 		ciphertext,
 	)
 	const witness = await operator.generateWitness({
@@ -110,11 +96,12 @@ export async function generateZkWitness(
  * @param publicInput 
  * @param zkey 
  */
-export async function verifyProof(
-	{ algorithm, proofJson, plaintext }: Proof,
-	{ ciphertext }: PublicInput,
-	operator: ZKOperator
-): Promise<void> {
+export async function verifyProof({
+	proof: { algorithm, plaintext, proofJson },
+	publicInput: { ciphertext },
+	operator,
+	logger
+}: VerifyProofOpts): Promise<void> {
 	const { uint8ArrayToBits } = CONFIG[algorithm]
 	const ciphertextArray = padCiphertextToChunkSize(
 		algorithm,

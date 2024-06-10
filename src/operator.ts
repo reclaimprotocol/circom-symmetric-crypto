@@ -1,4 +1,4 @@
-import { CircuitWasm, EncryptionAlgorithm, Logger, VerificationKey, ZKOperator, ZKParams } from "./types";
+import { CircuitWasm, EncryptionAlgorithm, VerificationKey, ZKOperator, ZKParams } from "./types";
 
 type WitnessData = {
 	type: 'mem'
@@ -16,7 +16,6 @@ const WITNESS_MEMORY_SIZE_PAGES = 5
  */
 export async function makeLocalSnarkJsZkOperator(
 	type: EncryptionAlgorithm,
-	logger?: Logger
 ) {
 	const { join } = await import('path')
 	const folder = `../resources/${type}`
@@ -33,7 +32,6 @@ export async function makeLocalSnarkJsZkOperator(
 				`${folder}/circuit.wasm`
 			),
 		},
-		logger
 	)
 }
 
@@ -43,7 +41,6 @@ export async function makeLocalSnarkJsZkOperator(
  */
 export function makeSnarkJsZKOperator(
 	{ getCircuitWasm, getZkey }: ZKParams,
-	logger?: Logger
 ): ZKOperator {
 	// require here to avoid loading snarkjs in
 	// any unsupported environments
@@ -53,7 +50,7 @@ export function makeSnarkJsZKOperator(
 	let wc: Promise<any> | undefined
 
 	return {
-		async generateWitness(input) {
+		async generateWitness(input, logger) {
 			circuitWasm ||= getCircuitWasm()
 			wc ||= (async() => {
 				if(!snarkjs.wtns.getWtnsCalculator) {
@@ -66,7 +63,6 @@ export function makeSnarkJsZKOperator(
 				const CurMemory = WebAssembly.Memory
 				WebAssembly.Memory = class extends WebAssembly.Memory {
 					constructor() {
-						console.log('Creating memory')
 						super({ initial: WITNESS_MEMORY_SIZE_PAGES })
 					}
 				}
@@ -100,7 +96,7 @@ export function makeSnarkJsZKOperator(
 			
 			return wtns.data!
 		},
-		async groth16Prove(witness) {
+		async groth16Prove(witness, logger) {
 			zkey ||= getZkey()
 			return snarkjs.groth16.prove(
 				(await zkey).data,
@@ -108,7 +104,7 @@ export function makeSnarkJsZKOperator(
 				logger
 			)
 		},
-		async groth16Verify(publicSignals, proof) {
+		async groth16Verify(publicSignals, proof, logger) {
 			zkey ||= getZkey()
 			const zkeyResult = await zkey
 			if(!zkeyResult.json) {

@@ -28,7 +28,7 @@ npm install snarkjs
 ### Generating Proof
 
 ```ts
-import { generateProof, verifyProof, makeLocalSnarkJsZkOperator, toUint8Array } from '@reclaimprotocol/circom-symmetric-crypto'
+import { generateProof, verifyProof, makeLocalSnarkJsZkOperator } from '@reclaimprotocol/circom-symmetric-crypto'
 import { createCipheriv, randomBytes } from 'crypto'
 
 async function main() {
@@ -45,17 +45,17 @@ async function main() {
 
 	// the operator is the abstract interface for
 	// the snarkjs library to generate & verify the proof
-	const zkOperator = await makeLocalSnarkJsZkOperator(algorithm)
+	const operator = await makeLocalSnarkJsZkOperator(algorithm)
 	// generate the proof that you have the key to the ciphertext
 	const {
 		// groth16-snarkjs proof as a JSON string
 		proofJson,
 		// the plaintext, obtained from the output of the circuit
 		plaintext,
-	} = await generateProof(
-		'chacha20',
+	} = await generateProof({
+		algorithm,
 		// key, iv & counter are the private inputs to the circuit
-		{
+		privateInput: {
 			key,
 			iv,
 			// this is the counter from which to start
@@ -64,9 +64,9 @@ async function main() {
 			offset: 0
 		},
 		// the public ciphertext input to the circuit
-		{ ciphertext },
-		zkOperator
-	)
+		publicInput: { ciphertext },
+		operator,
+	})
 
 	// you can check that the plaintext obtained from the circuit
 	// is the same as the plaintext obtained from the ciphertext
@@ -78,16 +78,16 @@ async function main() {
 
 	// you can verify the proof with the public inputs
 	// and the proof JSON string
-	await verifyProof(
-		{
+	await verifyProof({
+		proof: {
 			proofJson,
 			plaintext,
 			algorithm
 		},
 		// the public inputs to the circuit
-		{ ciphertext },
-		zkOperator
-	)
+		publicInput: { ciphertext },
+		operator
+	})
 	console.log('Proof verified')
 }
 
