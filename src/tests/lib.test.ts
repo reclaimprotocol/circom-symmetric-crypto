@@ -9,6 +9,7 @@ import {
 	CONFIG,
 } from '../index'
 import { encryptData } from "./utils";
+import {makeLocalGnarkZkOperator} from "../gnark";
 
 jest.setTimeout(20_000)
 
@@ -30,128 +31,137 @@ const ALG_TEST_CONFIG = {
 	},
 }
 
+const ALL_ZK_ENGINES = {
+	'snarkJS': async (algorithm)=>await makeLocalSnarkJsZkOperator(algorithm),
+	'gnark': async (algorithm)=>await makeLocalGnarkZkOperator(algorithm),
+}
+
+const ZK_ENGINES = ['snarkJS', 'gnark']
 describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
+	describe.each(ZK_ENGINES)('%s engine', (zkEngine) => {
+		const {
+			encLength,
+		} = ALG_TEST_CONFIG[algorithm]
+		const {
+			bitsPerWord,
+			chunkSize,
+			keySizeBytes
+		} = CONFIG[algorithm]
 
-	const {
-		encLength,
-	} = ALG_TEST_CONFIG[algorithm]
-	const {
-		bitsPerWord,
-		chunkSize,
-		keySizeBytes
-	} = CONFIG[algorithm]
+		const chunkSizeBytes = chunkSize * bitsPerWord / 8
 
-	const chunkSizeBytes = chunkSize * bitsPerWord / 8
-
-	let operator: ZKOperator
-	beforeAll(async() => {
-		operator = await makeLocalSnarkJsZkOperator(algorithm)
-	})
-
-	it('should verify encrypted data', async() => {
-		const plaintext = new Uint8Array(randomBytes(encLength))
-
-		const privateInput: PrivateInput = {
-			key: Buffer.alloc(keySizeBytes, 2),
-			iv: Buffer.alloc(12, 3),
-			offset: 0,
-		}
-
-		const ciphertext = encryptData(
-			algorithm,
-			plaintext,
-			privateInput.key,
-			privateInput.iv
-		)
-
-		const publicInput = { ciphertext }
-
-		const proof = await generateProof({
-			algorithm,
-			privateInput,
-			publicInput,
-			operator
+		let operator: ZKOperator
+		beforeAll(async() => {
+			operator = await ALL_ZK_ENGINES[zkEngine](algorithm)
 		})
-		// ensure the ZK decrypted data matches the plaintext
-		expect(
-			proof.plaintext
-				.slice(0, plaintext.length)
-		).toEqual(
-			plaintext
-		)
-		// client will send proof to witness
-		// witness would verify proof
-		await verifyProof({ proof, publicInput, operator })
-	})
 
-	it('should verify encrypted data with another counter', async() => {
-		const totalPlaintext = new Uint8Array(randomBytes(chunkSizeBytes * 5))
-		// use a chunk in the middle
-		const offset = 2
-		const plaintext = totalPlaintext
-			.subarray(chunkSizeBytes*offset, chunkSizeBytes * (offset + 1))
+		it('should verify encrypted data', async() => {
+			const plaintext = new Uint8Array(randomBytes(encLength))
 
-		const privateInput: PrivateInput = {
-			key: Buffer.alloc(keySizeBytes, 2),
-			iv: Buffer.alloc(12, 3),
-			offset,
-		}
+			const privateInput: PrivateInput = {
+				key: Buffer.alloc(keySizeBytes, 2),
+				iv: Buffer.alloc(12, 3),
+				offset: 0,
+			}
 
-		const totalCiphertext = encryptData(
-			algorithm,
-			totalPlaintext,
-			privateInput.key,
-			privateInput.iv
-		)
-		const ciphertext = totalCiphertext
-			.subarray(chunkSizeBytes*offset, chunkSizeBytes * (offset + 1))
+			const ciphertext = encryptData(
+				algorithm,
+				plaintext,
+				privateInput.key,
+				privateInput.iv
+			)
 
-		const publicInput = { ciphertext }
-		const proof = await generateProof({
-			algorithm,
-			privateInput,
-			publicInput,
-			operator
+			const publicInput = { ciphertext }
+
+			const proof = await generateProof({
+				algorithm,
+				privateInput,
+				publicInput,
+				operator
+			})
+			// ensure the ZK decrypted data matches the plaintext
+			expect(
+				proof.plaintext
+					.slice(0, plaintext.length)
+			).toEqual(
+				plaintext
+			)
+			// client will send proof to witness
+			// witness would verify proof
+			await verifyProof({ proof, publicInput, operator })
 		})
-		// ensure the ZK decrypted data matches the plaintext
-		expect(
-			proof.plaintext
-				.slice(0, plaintext.length)
-		).toEqual(
-			plaintext
-		)
-	})
 
-	it('should fail to verify incorrect data', async() => {
-		const plaintext = Buffer.alloc(encLength, 1)
+		it('should verify encrypted data with another counter', async() => {
+			const totalPlaintext = new Uint8Array(randomBytes(chunkSizeBytes * 5))
+			// use a chunk in the middle
+			const offset = 2
+			const plaintext = totalPlaintext
+				.subarray(chunkSizeBytes*offset, chunkSizeBytes * (offset + 1))
 
-		const privateInput: PrivateInput = {
-			key: Buffer.alloc(keySizeBytes, 2),
-			iv: Buffer.alloc(12, 3),
-			offset: 0,
-		}
+			const privateInput: PrivateInput = {
+				key: Buffer.alloc(keySizeBytes, 2),
+				iv: Buffer.alloc(12, 3),
+				offset,
+			}
 
-		const ciphertext = encryptData(
-			algorithm,
-			plaintext,
-			privateInput.key,
-			privateInput.iv
-		)
-		const publicInput = { ciphertext }
+			const totalCiphertext = encryptData(
+				algorithm,
+				totalPlaintext,
+				privateInput.key,
+				privateInput.iv
+			)
+			const ciphertext = totalCiphertext
+				.subarray(chunkSizeBytes*offset, chunkSizeBytes * (offset + 1))
 
-		const proof = await generateProof({
-			algorithm,
-			privateInput,
-			publicInput,
-			operator
+			const publicInput = { ciphertext }
+			const proof = await generateProof({
+				algorithm,
+				privateInput,
+				publicInput,
+				operator
+			})
+			// ensure the ZK decrypted data matches the plaintext
+			expect(
+				proof.plaintext
+					.slice(0, plaintext.length)
+			).toEqual(
+				plaintext
+			)
 		})
-		// fill output with 0s
-		for(let i = 0;i < proof.plaintext.length;i++) {
-			proof.plaintext[i] = 0
-		}
 
-		await expect(
-			verifyProof({ proof, publicInput, operator })
-		).rejects.toHaveProperty('message', 'invalid proof')
+		it('should fail to verify incorrect data', async() => {
+			const plaintext = Buffer.alloc(encLength, 1)
+
+			const privateInput: PrivateInput = {
+				key: Buffer.alloc(keySizeBytes, 2),
+				iv: Buffer.alloc(12, 3),
+				offset: 0,
+			}
+
+			const ciphertext = encryptData(
+				algorithm,
+				plaintext,
+				privateInput.key,
+				privateInput.iv
+			)
+			const publicInput = { ciphertext }
+
+			const proof = await generateProof({
+				algorithm,
+				privateInput,
+				publicInput,
+				operator
+			})
+			// fill output with 0s
+			for(let i = 0;i < proof.plaintext.length;i++) {
+				proof.plaintext[i] = 0
+			}
+
+			await expect(
+				verifyProof({ proof, publicInput, operator })
+			).rejects.toHaveProperty('message', 'invalid proof')
+		})
 	})
+
+
 })
