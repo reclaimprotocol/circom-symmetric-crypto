@@ -1,84 +1,84 @@
-import * as snarkjs from "snarkjs"
-import { PrivateInput, Proof, PublicInput, VerificationKey } from "./types"
+import * as snarkjs from "snarkjs";
+import { PrivateInput, Proof, PublicInput, VerificationKey } from "./types";
 import { bitsToUint8Array } from "../utils";
 
+const CIRCUIT_WASM_PATH = "./resources/aes/circuit.wasm";
 
-const CIRCUIT_WASM_PATH = "./resources/aes/circuit.wasm"
-
+/**
+ * Generates a zero-knowledge proof
+ * @param privateInput - The private input for the proof
+ * @param publicInput - The public input for the proof
+ * @param zkey - The verification key
+ * @returns A Promise resolving to the generated Proof
+ */
 export async function generateProof(
-	{
-		key,
-		iv,
-	}: PrivateInput,
-	{
-		ciphertext,
-		//redactedPlaintext,
-	}: PublicInput,
-	zkey
+    privateInput: PrivateInput,
+    publicInput: PublicInput,
+    zkey: VerificationKey
 ): Promise<Proof> {
+    const { key, iv } = privateInput;
+    const { ciphertext } = publicInput;
 
-	//convert to bit arrays
-	const encKey = buffer2bits(Buffer.from(key));
-	const ivCounter = buffer2bits(Buffer.from(iv));
-	const ct = buffer2bits(Buffer.from(ciphertext));
+    const encKey = bufferToBits(Buffer.from(key));
+    const ivCounter = bufferToBits(Buffer.from(iv));
+    const ct = bufferToBits(Buffer.from(ciphertext));
 
-	const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-		{
-			encKey:encKey,
-			iv:ivCounter,
-			ciphertext:ct,
-		},
-		CIRCUIT_WASM_PATH,
-		zkey.data
-	)
+    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+        {
+            encKey,
+            iv: ivCounter,
+            ciphertext: ct,
+        },
+        CIRCUIT_WASM_PATH,
+        zkey.data
+    );
 
-	return {
-		proofJson: JSON.stringify(proof),
-		plaintext: bitsToUint8Array(
-			publicSignals
-				.slice(0, ct.length * 8)
-		)
-	}
-}
-
-export async function verifyProof(
-	{ proofJson }: Proof,
-	publicInput: PublicInput,
-	zkey: VerificationKey
-): Promise<boolean> {
-	if(!zkey.json) {
-		zkey.json = await snarkjs.zKey.exportVerificationKey(zkey.data)
-	}
-
-	const pubInputs = getSerialisedPublicInputs(publicInput)
-	return await snarkjs.groth16.verify(
-		zkey.json,
-		pubInputs,
-		JSON.parse(proofJson)
-	)
+    return {
+        proofJson: JSON.stringify(proof),
+        plaintext: bitsToUint8Array(publicSignals.slice(0, ct.length * 8))
+    };
 }
 
 /**
- * Serialise public inputs to array of numbers for the ZK circuit
- * the format is spread (output, ciphertext, redactedPlaintext)
- * @param inp 
+ * Verifies a zero-knowledge proof
+ * @param proof - The proof to verify
+ * @param publicInput - The public input used for verification
+ * @param zkey - The verification key
+ * @returns A Promise resolving to a boolean indicating if the proof is valid
  */
-function getSerialisedPublicInputs(inp: PublicInput) {
-	return [
-		...Array.from(buffer2bits(Buffer.from(inp.ciphertext))),
-	]
+export async function verifyProof(
+    proof: Proof,
+    publicInput: PublicInput,
+    zkey: VerificationKey
+): Promise<boolean> {
+    if (!zkey.json) {
+        zkey.json = await snarkjs.zKey.exportVerificationKey(zkey.data);
+    }
+
+    const pubInputs = getSerializedPublicInputs(publicInput);
+    return snarkjs.groth16.verify(
+        zkey.json,
+        pubInputs,
+        JSON.parse(proof.proofJson)
+    );
 }
 
-function buffer2bits(buff:Buffer) {
-	const res:number[] = [];
-	for (let i = 0; i < buff.length; i++) {
-		for (let j = 0; j < 8; j++) {
-			if ((buff[i] >> 7-j) & 1) {
-				res.push(1);
-			} else {
-				res.push(0);
-			}
-		}
-	}
-	return res;
+/**
+ * Serializes public inputs to an array of numbers for the ZK circuit
+ * @param input - The public input to serialize
+ * @returns An array of numbers representing the serialized public input
+ */
+function getSerializedPublicInputs(input: PublicInput): number[] {
+    return bufferToBits(Buffer.from(input.ciphertext));
+}
+
+/**
+ * Converts a Buffer to an array of bits
+ * @param buffer - The Buffer to convert
+ * @returns An array of numbers (0 or 1) representing the bits
+ */
+function bufferToBits(buffer: Buffer): number[] {
+    return Array.from(buffer).flatMap(byte => 
+        Array.from({length: 8}, (_, i) => (byte >> (7 - i)) & 1)
+    );
 }
