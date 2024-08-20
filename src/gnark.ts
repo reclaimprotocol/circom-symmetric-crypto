@@ -5,10 +5,11 @@ let koffi = require('koffi');
 
 
 let verify:(...args: any[]) => any
-let init:(...args: any[]) => any
 let free:(...args: any[]) => any
-let initComplete:(...args: any[]) => any
 let prove:(...args: any[]) => any
+let initAlgorithm:(...args: any[]) => any
+
+let initDone = false
 
 try {
 	if(koffi?.version){
@@ -46,10 +47,9 @@ try {
 		const libProve = koffi.load(libProvePath)
 
 		verify = libVerify.func('Verify', 'unsigned char', [GoSlice])
-		init = libProve.func('Init', 'void', [])
 		free = libProve.func('Free', 'void', ['void *'])
-		initComplete = libProve.func('InitComplete', 'unsigned char', [])
 		prove = libProve.func('Prove', ProveReturn, [GoSlice])
+		initAlgorithm = libProve.func('InitAlgorithm', 'unsigned char', ['unsigned char', GoSlice, GoSlice])
 	}
 } catch (e){
 	koffi = undefined
@@ -60,6 +60,76 @@ try {
 export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Promise<ZKOperator> {
 
 	if(koffi){
+
+		async function initGnark(){
+			const { join } = await import('path')
+
+			const fs = require('fs')
+
+			const folder = `../resources/gnark`
+
+			let keyPath = join(__dirname,`${folder}/pk.bits`)
+			let keyFile = fs.readFileSync(keyPath)
+
+			let r1Path = join(__dirname,`${folder}/r1cs.bits`)
+			let r1File = fs.readFileSync(r1Path)
+
+			let f1 = {
+				data: Buffer.from(keyFile),
+				len:keyFile.length,
+				cap:keyFile.length
+			}
+			let f2 = {
+				data: Buffer.from(r1File),
+				len:r1File.length,
+				cap:r1File.length
+			}
+
+			initAlgorithm(0,f1, f2)
+
+
+			keyPath = join(__dirname,`${folder}/pk.aes128`)
+			keyFile = fs.readFileSync(keyPath)
+
+			r1Path = join(__dirname,`${folder}/r1cs.aes128`)
+			r1File = fs.readFileSync(r1Path)
+
+			f1 = {
+				data: Buffer.from(keyFile),
+				len:keyFile.length,
+				cap:keyFile.length
+			}
+			f2 = {
+				data: Buffer.from(r1File),
+				len:r1File.length,
+				cap:r1File.length
+			}
+
+			initAlgorithm(1,f1, f2)
+
+
+			keyPath = join(__dirname,`${folder}/pk.aes256`)
+			keyFile = fs.readFileSync(keyPath)
+
+			r1Path = join(__dirname,`${folder}/r1cs.aes256`)
+			r1File = fs.readFileSync(r1Path)
+
+			f1 = {
+				data: Buffer.from(keyFile),
+				len:keyFile.length,
+				cap:keyFile.length
+			}
+			f2 = {
+				data: Buffer.from(r1File),
+				len:r1File.length,
+				cap:r1File.length
+			}
+
+			initAlgorithm(2,f1, f2)
+			initDone = true
+		}
+
+
 		return Promise.resolve({
 
 			async generateWitness(input): Promise<Uint8Array> {
@@ -68,16 +138,19 @@ export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Pro
 
 			//used in nodeJS only for tests
 			async groth16Prove(witness: Uint8Array) {
+
+				if (!initDone){
+					await initGnark()
+				}
+
 				const wtns = {
 					data: Buffer.from(witness),
 					len:witness.length,
 					cap:witness.length
-
 				}
 				const res = prove(wtns)
 				const resJson = Buffer.from(koffi.decode(res.r0, 'unsigned char', res.r1)).toString()
 				free(res.r0) // Avoid memory leak!
-
 				return Promise.resolve(JSON.parse(resJson))
 			},
 
