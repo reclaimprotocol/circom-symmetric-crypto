@@ -68,10 +68,10 @@ export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Pro
 
 			const folder = `../resources/gnark`
 
-			let keyPath = join(__dirname,`${folder}/pk.bits`)
+			let keyPath = join(__dirname,`${folder}/pk.chacha20`)
 			let keyFile = fs.readFileSync(keyPath)
 
-			let r1Path = join(__dirname,`${folder}/r1cs.bits`)
+			let r1Path = join(__dirname,`${folder}/r1cs.chacha20`)
 			let r1File = fs.readFileSync(r1Path)
 
 			let f1 = {
