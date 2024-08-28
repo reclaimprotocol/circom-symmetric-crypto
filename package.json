@@ -9,8 +9,27 @@
     "build:tsc": "npm exec tsc",
     "generate:ptau": "sh scripts/generate-ptau.sh",
     "download:ptau": "sh scripts/download-ptau.sh",
-    "prepare": "npm run build:tsc"
+    "prepare": "npm run build:tsc",
+    "commitlint": "commitlint --edit"
   },
+  "keywords": [
+    "circom",
+    "chacha20",
+    "symmetric-crypto",
+    "zero-knowledge",
+    "zk-snark",
+    "cryptography",
+    "blockchain",
+    "privacy",
+    "encryption",
+    "decryption",
+    "reclaim-protocol"
+  ],
+  "license": "See License in <https://github.com/reclaimprotocol/.github/blob/main/LICENSE>",
+	"bugs": {
+		"url": "https://github.com/reclaimprotocol/zk-symmetric-crypto/issues"
+	},
+	"homepage": "https://github.com/reclaimprotocol/zk-symmetric-crypto/",
   "files": [
     "lib",
     "resources"
@@ -28,6 +47,8 @@
     }
   },
   "devDependencies": {
+    "@commitlint/cli": "^17.7.1",
+    "@commitlint/config-conventional": "^17.7.0",
     "@types/jest": "^29.5.5",
     "@types/node": "^18.19.45",
     "circom_tester": "^0.0.20",
