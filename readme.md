@@ -14,7 +14,7 @@ It uses the `groth16` implementaion in `snarkjs` to generate the proof.
 ## Installation
 
 ```bash
-npm install git+https://gitlab.reclaimprotocol.org/Reclaim/zk-symmetric-crypto
+npm install git+https://github.com/reclaimprotocol/circom-symmetric-crypto
 ```
 
 If using on the browser, or nodejs, you will need to install `snarkjs` as well.
