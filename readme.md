@@ -1,4 +1,8 @@
-# Reclaim Protocol - Circom Symmetric Crypto
+<div>
+    <div>
+        <img src="https://raw.githubusercontent.com/reclaimprotocol/.github/main/assets/banners/Circom.png"  />
+    </div>
+</div>
 
 This library contains circom zero-knowledge proof circuits for symmetric crypto operations. The goal is to enable a user to prove that they have the key to a symmetric encrypted message without revealing the key.
 
