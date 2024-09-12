@@ -1,6 +1,6 @@
 {
   "name": "@reclaimprotocol/circom-symmetric-crypto",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Circom implementation of ChaCha20",
   "main": "lib/index.js",
   "scripts": {
@@ -17,7 +17,8 @@
   ],
   "peerDependencies": {
     "koffi": "*",
-    "snarkjs": "*"
+    "snarkjs": "*",
+    "js-base64": "^3.7.7"
   },
   "peerDependenciesMeta": {
     "snarkjs": {
@@ -25,6 +26,9 @@
     },
     "koffi": {
       "optional": true
+    },
+    "js-base64":{
+      "optional": false
     }
   },
   "devDependencies": {
@@ -37,6 +41,7 @@
     "snarkjs": "git+https://github.com/reclaimprotocol/snarkjs",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "js-base64": "^3.7.7"
   }
 }
