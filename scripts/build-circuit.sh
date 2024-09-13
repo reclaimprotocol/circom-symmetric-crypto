@@ -1,4 +1,4 @@
-if [[ -z "${ALG}" ]]; then
+if [ -z "${ALG}" ]; then
 	echo "\$ALG is not set. Please set to chacha20, aes-128-ctr or aes-256-ctr"
   exit 1
 fi
