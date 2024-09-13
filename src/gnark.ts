@@ -153,15 +153,6 @@ export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Pro
 				const resJson = Buffer.from(koffi.decode(res.r0, 'unsigned char', res.r1)).toString()
 				free(res.r0) // Avoid memory leak!
 				const proof = JSON.parse(resJson)
-				if (proof.proof){
-					const {
-						uint8ArrayToBits
-					} = CONFIG[cipher]
-
-					const out = Base64.toUint8Array(proof.publicSignals)
-					proof.publicSignals = uint8ArrayToBits(out).flat()
-
-				}
 				return Promise.resolve(proof)
 			},
 

@@ -1,6 +1,7 @@
 import { EncryptionAlgorithm, GenerateProofOpts, Proof, VerifyProofOpts } from "./types"
 import { CONFIG } from "./config"
 import { getCounterForChunk } from "./utils"
+import {Base64} from "js-base64";
 
 /**
  * Generate ZK proof for CHACHA20-CTR encryption.
@@ -28,11 +29,13 @@ export async function generateProof(opts: GenerateProofOpts): Promise<Proof> {
 		proofJson: typeof proof === 'string'
 			? proof
 			: JSON.stringify(proof),
-		plaintext: bitsToUint8Array(
-			publicSignals
-				.slice(0, totalBits)
-				.map((x) => +x)
-		)
+		plaintext: Array.isArray(publicSignals) ? //snarkJS
+			bitsToUint8Array(
+				publicSignals
+					.slice(0, totalBits)
+					.map((x) => +x)
+			) :
+			Base64.toUint8Array(publicSignals) // gnark
 	}
 }
 
