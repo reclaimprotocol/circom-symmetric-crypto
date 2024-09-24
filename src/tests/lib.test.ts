@@ -60,18 +60,18 @@ describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
 
 			const privateInput: PrivateInput = {
 				key: Buffer.alloc(keySizeBytes, 2),
-				iv: Buffer.alloc(12, 3),
-				offset: 0,
 			}
+
+			const iv = new Uint8Array(Array.from(Array(12).keys()))
 
 			const ciphertext = encryptData(
 				algorithm,
 				plaintext,
 				privateInput.key,
-				privateInput.iv
+				iv
 			)
+			const publicInput = { ciphertext, iv: iv, offset: 0 }
 
-			const publicInput = { ciphertext }
 
 			const proof = await generateProof({
 				algorithm,
@@ -98,22 +98,21 @@ describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
 			const plaintext = totalPlaintext
 				.subarray(chunkSizeBytes*offset, chunkSizeBytes * (offset + 1))
 
+			const iv = Buffer.alloc(12, 3)
 			const privateInput: PrivateInput = {
 				key: Buffer.alloc(keySizeBytes, 2),
-				iv: Buffer.alloc(12, 3),
-				offset,
 			}
 
 			const totalCiphertext = encryptData(
 				algorithm,
 				totalPlaintext,
 				privateInput.key,
-				privateInput.iv
+				iv,
 			)
 			const ciphertext = totalCiphertext
 				.subarray(chunkSizeBytes*offset, chunkSizeBytes * (offset + 1))
 
-			const publicInput = { ciphertext }
+			const publicInput = { ciphertext, iv, offset }
 			const proof = await generateProof({
 				algorithm,
 				privateInput,
@@ -134,17 +133,17 @@ describe.each(ALL_ALGOS)('%s Lib Tests', (algorithm) => {
 
 			const privateInput: PrivateInput = {
 				key: Buffer.alloc(keySizeBytes, 2),
-				iv: Buffer.alloc(12, 3),
-				offset: 0,
 			}
 
+
+			const iv = Buffer.alloc(12, 3)
 			const ciphertext = encryptData(
 				algorithm,
 				plaintext,
 				privateInput.key,
-				privateInput.iv
+				iv
 			)
-			const publicInput = { ciphertext }
+			const publicInput = { ciphertext, iv, offset: 0}
 
 			const proof = await generateProof({
 				algorithm,
