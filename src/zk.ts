@@ -1,6 +1,6 @@
-import { EncryptionAlgorithm, GenerateProofOpts, Proof, VerifyProofOpts } from "./types"
-import { CONFIG } from "./config"
-import { getCounterForChunk } from "./utils"
+import {EncryptionAlgorithm, GenerateProofOpts, Proof, VerifyProofOpts} from "./types"
+import {CONFIG} from "./config"
+import {getCounterForChunk} from "./utils"
 import {Base64} from "js-base64";
 
 /**
@@ -48,10 +48,8 @@ export async function generateZkWitness({
 	algorithm,
 	privateInput: {
 		key,
-		iv,
-		offset,
 	},
-	publicInput: { ciphertext },
+	publicInput: { ciphertext, iv, offset },
 	operator
 }: GenerateProofOpts,
 ) {
@@ -101,11 +99,11 @@ export async function generateZkWitness({
  */
 export async function verifyProof({
 	proof: { algorithm, plaintext, proofJson },
-	publicInput: { ciphertext },
+	publicInput: { ciphertext, iv, offset },
 	operator,
 	logger
 }: VerifyProofOpts): Promise<void> {
-	const { uint8ArrayToBits } = CONFIG[algorithm]
+	const { uint8ArrayToBits, isLittleEndian, startCounter } = CONFIG[algorithm]
 	const ciphertextArray = padCiphertextToChunkSize(
 		algorithm,
 		ciphertext
@@ -113,9 +111,12 @@ export async function verifyProof({
 	if(ciphertextArray.length !== plaintext.length) {
 		throw new Error(`ciphertext and plaintext must be the same length`)
 	}
+
 	// serialise to array of numbers for the ZK circuit
 	const pubInputs = [
 		...uint8ArrayToBits(plaintext),
+		...uint8ArrayToBits(iv),
+		...serialiseCounter(),
 		...uint8ArrayToBits(ciphertextArray),
 	].flat()
 	const verified = await operator.groth16Verify(
@@ -125,6 +126,14 @@ export async function verifyProof({
 
 	if(!verified) {
 		throw new Error('invalid proof')
+	}
+
+	function serialiseCounter() {
+		const counterArr = new Uint8Array(4)
+		const counterView = new DataView(counterArr.buffer)
+		counterView.setUint32(0, offset+startCounter, isLittleEndian)
+		return uint8ArrayToBits(counterArr)
+			.flat()
 	}
 }
 
