@@ -1,5 +1,7 @@
 import {EncryptionAlgorithm, ZKOperator} from "./types";
 import {join} from "path";
+import {CONFIG} from "./config";
+import {Base64} from "js-base64";
 
 let koffi = require('koffi');
 
@@ -142,7 +144,6 @@ export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Pro
 				if (!initDone){
 					await initGnark()
 				}
-
 				const wtns = {
 					data: Buffer.from(witness),
 					len:witness.length,
@@ -151,16 +152,23 @@ export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Pro
 				const res = prove(wtns)
 				const resJson = Buffer.from(koffi.decode(res.r0, 'unsigned char', res.r1)).toString()
 				free(res.r0) // Avoid memory leak!
-				return Promise.resolve(JSON.parse(resJson))
+				const proof = JSON.parse(resJson)
+				return Promise.resolve(proof)
 			},
 
 			async groth16Verify(publicSignals, proof) {
+
+				const {
+					bitsToUint8Array
+				} = CONFIG[cipher]
+
+
 				const proofStr = proof['proofJson']
 
 				const verifyParams = {
 					cipher:cipher,
 					proof: proofStr,
-					publicSignals: publicSignals,
+					publicSignals: Base64.fromUint8Array(bitsToUint8Array(publicSignals.flat())),
 				}
 
 				const paramsJson = JSON.stringify(verifyParams)
@@ -195,18 +203,31 @@ export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Pro
 	}
 }
 
-function generateGnarkWitness(cipher, input){
-	//input is already in bits, sometimes groups of bits
+function generateGnarkWitness(cipher:EncryptionAlgorithm, input){
+	const {
+		bitsToUint8Array,
+		isLittleEndian
+	} = CONFIG[cipher]
+
+
+	//input is bits, we convert them back to bytes
 	const proofParams = {
 		cipher:cipher,
-		key: input.key,
-		nonce: input.nonce,
-		counter: input.counter,
-		input: input.in,
+		key: Base64.fromUint8Array(bitsToUint8Array(input.key.flat())),
+		nonce: Base64.fromUint8Array(bitsToUint8Array(input.nonce.flat())),
+		counter: deSerialiseCounter(),
+		input: Base64.fromUint8Array(bitsToUint8Array(input.in.flat())),
 	}
 
 	const paramsJson = JSON.stringify(proofParams)
 	return strToUint8Array(paramsJson)
+
+
+	function deSerialiseCounter() {
+		const bytes = bitsToUint8Array(input.counter)
+		const counterView = new DataView(bytes.buffer)
+		return counterView.getUint32(0,isLittleEndian)
+	}
 }
 
 function strToUint8Array(str: string) {
