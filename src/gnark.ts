@@ -3,20 +3,19 @@ import {join} from "path";
 import {CONFIG} from "./config";
 import {Base64} from "js-base64";
 
-let koffi = require('koffi');
-
 
 let verify:(...args: any[]) => any
 let free:(...args: any[]) => any
 let prove:(...args: any[]) => any
 let initAlgorithm:(...args: any[]) => any
-
+let koffi
 let initDone = false
 
 try {
+	koffi = require('koffi');
 	if(koffi?.version){
 		koffi.reset() //otherwise tests will fail
-
+		
 		// define object GoSlice to map to:
 		// C type struct { void *data; GoInt len; GoInt cap; }
 		const GoSlice = koffi.struct('GoSlice', {
@@ -29,7 +28,6 @@ try {
 			r0: 'void *',
 			r1:  'longlong',
 		})
-
 
 		const resFolder = `../resources/gnark`
 
@@ -57,7 +55,6 @@ try {
 	koffi = undefined
 	console.log("Gnark is only supported on linux x64 & ARM64.", e.toString())
 }
-
 
 export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Promise<ZKOperator> {
 
@@ -131,7 +128,6 @@ export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Pro
 			initDone = true
 		}
 
-
 		return Promise.resolve({
 
 			async generateWitness(input): Promise<Uint8Array> {
@@ -161,7 +157,6 @@ export async function makeLocalGnarkZkOperator(cipher: EncryptionAlgorithm): Pro
 				const {
 					bitsToUint8Array
 				} = CONFIG[cipher]
-
 
 				const proofStr = proof['proofJson']
 
@@ -209,7 +204,6 @@ function generateGnarkWitness(cipher:EncryptionAlgorithm, input){
 		isLittleEndian
 	} = CONFIG[cipher]
 
-
 	//input is bits, we convert them back to bytes
 	const proofParams = {
 		cipher:cipher,
@@ -222,7 +216,6 @@ function generateGnarkWitness(cipher:EncryptionAlgorithm, input){
 	const paramsJson = JSON.stringify(proofParams)
 	return strToUint8Array(paramsJson)
 
-
 	function deSerialiseCounter() {
 		const bytes = bitsToUint8Array(input.counter)
 		const counterView = new DataView(bytes.buffer)
@@ -233,4 +226,3 @@ function generateGnarkWitness(cipher:EncryptionAlgorithm, input){
 function strToUint8Array(str: string) {
 	return new TextEncoder().encode(str)
 }
-
