@@ -10,9 +10,19 @@ type WitnessData = {
 const WITNESS_MEMORY_SIZE_PAGES = 5
 
 /**
- * Make a ZK operator from the snarkjs dependency
- * @param logger 
- * @returns 
+ * Creates a local SnarkJS ZK operator for a given encryption algorithm.
+ *
+ * This function dynamically imports the `snarkjs` library and constructs a 
+ * ZK operator that can generate witnesses,build and verify proofs based on the specified 
+ * encryption algorithm type.
+ *
+ * @param {EncryptionAlgorithm} type - The encryption algorithm to be used.('chacha20','aes-256-ctr','aes-128-ctr')
+ * @returns {Promise<ZKOperator>} A promise that resolves to a ZK operator.(interanlly calls `makeSnarkJsZKOperator`)
+ * @throws {Error} Throws an error if the specified algorithm type is not supported.
+ *
+ * @example
+ * const zkOperator = await makeLocalSnarkJsZkOperator('chacha20');
+ * const witness = await zkOperator.generateWitness(inputData);
  */
 export async function makeLocalSnarkJsZkOperator(
 	type: EncryptionAlgorithm,
@@ -36,8 +46,21 @@ export async function makeLocalSnarkJsZkOperator(
 }
 
 /**
- * Make a SnarkJS ZK operator from the provided
- * fns to get the circuit wasm and zkey
+ * Constructs a SnarkJS ZK operator using the provided functions to get 
+ * the circuit WASM and ZK key. This operator can generate witnesses and 
+ * produce proofs for zero-knowledge circuits.
+ *
+ * @param {getCircuitWasm,getZkey} ZKParams - An object containing functions to retrieve the circuit WASM from path.
+ * 
+ * @returns {ZKOperator} A ZK operator that can generate witnesses and proofs.
+ * @throws {Error} Throws an error if the `snarkjs` library is not available.
+ *
+ * @example
+ * const zkOperator = makeSnarkJsZKOperator({
+ *   getCircuitWasm: () => 'path/to/circuit.wasm',
+ *   getZkey: () => ({ data: 'path/to/circuit_final.zkey' }),
+ * });
+ * const witness = await zkOperator.generateWitness(inputData);
  */
 export function makeSnarkJsZKOperator(
 	{ getCircuitWasm, getZkey }: ZKParams,
